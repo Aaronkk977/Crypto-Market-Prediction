@@ -15,7 +15,7 @@ split:
 # Model settings
 model:
   type: "ridge"
-  alpha: 1.0
+  alpha: 0.1
   # For RidgeCV, use:
   # use_cv: true
   # alphas: [0.1, 1.0, 10.0, 100.0]

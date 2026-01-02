@@ -213,14 +213,70 @@ The training set has 525,886 rows and the testing set has 538,150 rows.
 
 ### Ablation Study
 
-To evaluate feature contribution, run experiments:
+```bash
+python scripts/ridge_ablation.py
+```
 
-- **Experiment A**: Only 780 original features (baseline)
-- **Experiment B**: Only 9 engineered features (signal strength test)
-- **Experiment C**: All 789 features (combined performance)
-- **Experiment D**: Permutation importance (feature ranking on validation set)
+To evaluate feature contribution:
 
-In financial modeling, small but stable improvements (e.g., R² +0.002) are meaningful as gains accumulate.
+| Experiment | Features | R² | RMSE |
+|------------|----------|---------|----------|
+| A (Baseline) | 780 original only | 0.1410 | 0.9369 |
+| B (Engineered) | 9 engineered only | 0.0007 | 1.0105 |
+| C (Combined) | All 789 features | 0.1414 | 0.9367 |
+
+**Key Findings:**
+- Predictive signal dominated by anonymized X1–X780 features
+- Engineered features provide minimal standalone predictive power
+- Marginal improvement (+0.0004 R²) when combined, likely within noise range
+
+### Feature Importance
+
+**Top 20 Features by Permutation Importance:**
+
+| Feature | Importance | Std |
+|---------|------------|-----|
+| X590 | 103.49 | ±0.24 |
+| X584 | 95.63 | ±0.24 |
+| X587 | 70.22 | ±0.23 |
+| X581 | 69.42 | ±0.23 |
+| X578 | 67.45 | ±0.16 |
+| X575 | 64.27 | ±0.23 |
+| X569 | 61.85 | ±0.22 |
+| X40 | 57.26 | ±0.17 |
+| X572 | 53.72 | ±0.13 |
+| X695 | 49.94 | ±0.12 |
+| X42 | 47.03 | ±0.15 |
+| X291 | 42.46 | ±0.16 |
+| X48 | 40.71 | ±0.14 |
+| X289 | 39.80 | ±0.18 |
+| X696 | 33.01 | ±0.12 |
+| X448 | 30.29 | ±0.07 |
+| X691 | 25.18 | ±0.06 |
+| X692 | 24.52 | ±0.10 |
+| X699 | 23.99 | ±0.07 |
+| X295 | 23.04 | ±0.11 |
+
+**Engineered Features Importance:**
+
+| Feature | Importance | Std |
+|---------|------------|-----|
+| book_to_trade_ratio_log1p | 0.000597 | ±0.000086 |
+| vol_log1p | 0.000434 | ±0.000130 |
+| bid_qty_log1p | 0.000419 | ±0.000082 |
+| trade_imbalance | 0.000353 | ±0.000065 |
+| imbalance_best | 0.000149 | ±0.000069 |
+| ask_to_sell | 0.000100 | ±0.000049 |
+| bid_to_buy | 0.000068 | ±0.000045 |
+| total_best_qty_log1p | 0.000047 | ±0.000030 |
+| ask_qty_log1p | 0.000001 | ±0.000010 |
+
+**Analysis:**
+- Top anonymized features (X590, X584, X587) show importance 2-3 orders of magnitude higher than engineered features
+- Average engineered feature importance: ~2.4×10⁻⁴
+- In financial modeling, even small incremental gains can be valuable when consistently reproducible
+
+
 
 ## License
 

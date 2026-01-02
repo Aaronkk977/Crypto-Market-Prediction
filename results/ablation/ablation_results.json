@@ -1,0 +1,209 @@
+[
+  {
+    "experiment": "Experiment A: Only 780 Original Features (Baseline)",
+    "n_features": 780,
+    "best_alpha": 0.1,
+    "training_time": 80.64440727233887,
+    "train_metrics": {
+      "mse": 0.8685913483463018,
+      "rmse": 0.9319824828537829,
+      "mae": 0.6191543004323675,
+      "r2": 0.147947725342361
+    },
+    "val_metrics": {
+      "mse": 0.8778504711385392,
+      "rmse": 0.936936748739497,
+      "mae": 0.6237626170988944,
+      "r2": 0.14097844817723337
+    }
+  },
+  {
+    "experiment": "Experiment B: Only New Engineered Features",
+    "n_features": 14,
+    "best_alpha": 100.0,
+    "training_time": 1.0326566696166992,
+    "train_metrics": {
+      "mse": 1.0180862630956464,
+      "rmse": 1.0090026080717762,
+      "mae": 0.6377475135407764,
+      "r2": 0.0012993821318960652
+    },
+    "val_metrics": {
+      "mse": 1.0211928471611262,
+      "rmse": 1.0105408686248796,
+      "mae": 0.6410402030223306,
+      "r2": 0.0007106071938085545
+    }
+  },
+  {
+    "experiment": "Experiment C: 780 + New Features (Full Model)",
+    "n_features": 794,
+    "best_alpha": 0.1,
+    "training_time": 79.74592232704163,
+    "train_metrics": {
+      "mse": 0.8683567536080288,
+      "rmse": 0.9318566164426955,
+      "mae": 0.6190707546597806,
+      "r2": 0.14817785310123044
+    },
+    "val_metrics": {
+      "mse": 0.8773905127794887,
+      "rmse": 0.9366912579817795,
+      "mae": 0.6236581729080146,
+      "r2": 0.14142854093944723
+    }
+  },
+  {
+    "experiment": "Experiment D: Permutation Importance",
+    "calculation_time": 954.8354439735413,
+    "top_features": [
+      {
+        "feature": "X590",
+        "importance_mean": 103.4946552716394,
+        "importance_std": 0.24063974268057536
+      },
+      {
+        "feature": "X584",
+        "importance_mean": 95.63334670134667,
+        "importance_std": 0.23652445098105815
+      },
+      {
+        "feature": "X587",
+        "importance_mean": 70.22038552926195,
+        "importance_std": 0.23080317582907434
+      },
+      {
+        "feature": "X581",
+        "importance_mean": 69.42010746750793,
+        "importance_std": 0.2347138860586327
+      },
+      {
+        "feature": "X578",
+        "importance_mean": 67.44712714057832,
+        "importance_std": 0.16197502556063653
+      },
+      {
+        "feature": "X575",
+        "importance_mean": 64.26834298081961,
+        "importance_std": 0.22573431530722246
+      },
+      {
+        "feature": "X569",
+        "importance_mean": 61.84697736238974,
+        "importance_std": 0.21516679659683285
+      },
+      {
+        "feature": "X40",
+        "importance_mean": 57.26160538131906,
+        "importance_std": 0.17069963543561548
+      },
+      {
+        "feature": "X572",
+        "importance_mean": 53.721779666485205,
+        "importance_std": 0.12854952327280808
+      },
+      {
+        "feature": "X695",
+        "importance_mean": 49.94296674867437,
+        "importance_std": 0.12327731123984177
+      },
+      {
+        "feature": "X42",
+        "importance_mean": 47.03137099322257,
+        "importance_std": 0.14714458305914496
+      },
+      {
+        "feature": "X291",
+        "importance_mean": 42.455049388718656,
+        "importance_std": 0.16203685295176493
+      },
+      {
+        "feature": "X48",
+        "importance_mean": 40.706044038046166,
+        "importance_std": 0.1413728404760041
+      },
+      {
+        "feature": "X289",
+        "importance_mean": 39.79642911742266,
+        "importance_std": 0.1835271023269737
+      },
+      {
+        "feature": "X696",
+        "importance_mean": 33.009055832828146,
+        "importance_std": 0.1158120470942457
+      },
+      {
+        "feature": "X448",
+        "importance_mean": 30.290808016176676,
+        "importance_std": 0.06744495822913411
+      },
+      {
+        "feature": "X691",
+        "importance_mean": 25.175242125176162,
+        "importance_std": 0.05797205233441818
+      },
+      {
+        "feature": "X692",
+        "importance_mean": 24.52299342417364,
+        "importance_std": 0.09528414443036458
+      },
+      {
+        "feature": "X699",
+        "importance_mean": 23.990850871305177,
+        "importance_std": 0.07115299822949743
+      },
+      {
+        "feature": "X295",
+        "importance_mean": 23.040324823040567,
+        "importance_std": 0.10899783511084933
+      }
+    ],
+    "engineered_features_importance": [
+      {
+        "feature": "book_to_trade_ratio_log1p",
+        "importance_mean": 0.0005972010695385777,
+        "importance_std": 8.630304693476764e-05
+      },
+      {
+        "feature": "vol_log1p",
+        "importance_mean": 0.00043358263267784247,
+        "importance_std": 0.00012950880757522815
+      },
+      {
+        "feature": "bid_qty_log1p",
+        "importance_mean": 0.00041866472094606035,
+        "importance_std": 8.243497191982304e-05
+      },
+      {
+        "feature": "trade_imbalance",
+        "importance_mean": 0.00035315778333613326,
+        "importance_std": 6.496204948294895e-05
+      },
+      {
+        "feature": "imbalance_best",
+        "importance_mean": 0.00014856868169769167,
+        "importance_std": 6.936924236853142e-05
+      },
+      {
+        "feature": "ask_to_sell",
+        "importance_mean": 0.00010026757522664242,
+        "importance_std": 4.8879419742480625e-05
+      },
+      {
+        "feature": "bid_to_buy",
+        "importance_mean": 6.836088648634053e-05,
+        "importance_std": 4.528643899166297e-05
+      },
+      {
+        "feature": "total_best_qty_log1p",
+        "importance_mean": 4.7396505298791244e-05,
+        "importance_std": 3.0430538809009994e-05
+      },
+      {
+        "feature": "ask_qty_log1p",
+        "importance_mean": 5.383593464802771e-07,
+        "importance_std": 1.0209836313431578e-05
+      }
+    ]
+  }
+]
