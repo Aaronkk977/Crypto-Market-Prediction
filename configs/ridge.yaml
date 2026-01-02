@@ -1,0 +1,44 @@
+# Ridge Regression Configuration
+
+# Data settings
+data:
+  train_path: "data/train_fe.parquet"
+  test_path: "data/test_fe.parquet"
+  target_col: "label"
+
+# Split settings
+split:
+  method: "random"  # or "time"
+  test_size: 0.2
+  random_state: 42
+
+# Model settings
+model:
+  type: "ridge"
+  alpha: 1.0
+  # For RidgeCV, use:
+  # use_cv: true
+  # alphas: [0.1, 1.0, 10.0, 100.0]
+  # cv_folds: 3
+
+# Feature settings
+features:
+  use_engineered: true
+  remove_correlated: true
+  scale_features: true
+
+# Training settings
+training:
+  save_model: true
+  save_scaler: true
+  model_dir: "artifacts/models"
+  scaler_dir: "artifacts/scalers"
+  results_dir: "artifacts/results"
+
+# Evaluation settings
+evaluation:
+  metrics:
+    - "mse"
+    - "rmse"
+    - "mae"
+    - "r2"
