@@ -42,7 +42,8 @@ def train_and_evaluate(X_train, X_val, y_train, y_val, experiment_name):
     # Train
     print("\nTraining RidgeCV (3-fold CV)...")
     start_time = time.time()
-    model = RidgeCV(alphas=[0.1, 1.0, 10.0, 100.0], cv=3, scoring='r2')
+    pearson_scorer = get_pearson_scorer()
+    model = RidgeCV(alphas=[0.1, 1.0, 10.0, 100.0], cv=3, scoring=pearson_scorer)
     model.fit(X_train_scaled, y_train)
     training_time = time.time() - start_time
     
@@ -81,12 +82,11 @@ def analyze_importance(model, X_val, y_val, X_val_scaled, engineered_features):
     print(f"{'='*60}")
     
     print("\nCalculating permutation importance...")
-    print("Using conservative settings to avoid overloading the system...")
     start_time = time.time()
     
     perm_importance = permutation_importance(
         model, X_val_scaled, y_val,
-        n_repeats=10, random_state=42, 
+        n_repeats=5, random_state=42, 
         scoring=get_pearson_scorer(), n_jobs=4  # Limit to 4 cores
     )
     

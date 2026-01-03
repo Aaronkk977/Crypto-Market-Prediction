@@ -6,7 +6,13 @@ import numpy as np
 from sklearn.linear_model import Ridge, RidgeCV, ElasticNetCV
 from sklearn.preprocessing import StandardScaler
 import time
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
+
+try:
+    import lightgbm as lgb
+    HAS_LIGHTGBM = True
+except ImportError:
+    HAS_LIGHTGBM = False
 
 def train_ridge_model(X_train, y_train, alpha=1.0, **kwargs):
     """
@@ -32,7 +38,7 @@ def train_ridge_model(X_train, y_train, alpha=1.0, **kwargs):
     
     return model
 
-def train_ridge_cv(X_train, y_train, alphas=None, cv=3, **kwargs):
+def train_ridge_cv(X_train, y_train, alphas=None, cv=3, scoring='pearson', **kwargs):
     """
     Train RidgeCV model with cross-validation for alpha selection.
     
@@ -41,6 +47,7 @@ def train_ridge_cv(X_train, y_train, alphas=None, cv=3, **kwargs):
         y_train: Training target
         alphas: List of alpha values to try (default: [0.1, 1.0, 10.0, 100.0])
         cv: Number of cross-validation folds (default: 3)
+        scoring: Scoring metric ('pearson', 'r2', or custom scorer). Default: 'pearson'
         **kwargs: Additional arguments for RidgeCV model
         
     Returns:
@@ -49,11 +56,16 @@ def train_ridge_cv(X_train, y_train, alphas=None, cv=3, **kwargs):
     if alphas is None:
         alphas = [0.1, 1.0, 10.0, 100.0]
     
+    # Handle scoring
+    if scoring == 'pearson':
+        from .metrics import get_pearson_scorer
+        scoring = get_pearson_scorer()
+    
     print(f"\nTraining RidgeCV with alphas: {alphas}...")
     print(f"Using {cv}-fold cross-validation...")
     start_time = time.time()
     
-    model = RidgeCV(alphas=alphas, cv=cv, scoring='r2', **kwargs)
+    model = RidgeCV(alphas=alphas, cv=cv, scoring=scoring, **kwargs)
     model.fit(X_train, y_train)
     
     training_time = time.time() - start_time
@@ -90,7 +102,8 @@ def train_elasticnet_cv(X_train, y_train, l1_ratio=0.5, alphas=None, cv=3, n_job
         l1_ratio=l1_ratio,
         alphas=alphas,
         cv=cv,
-        max_iter=10000,
+        max_iter=100000,  # Increased from 10000 to 100000
+        tol=1e-4,  # Default tolerance
         random_state=42,
         n_jobs=n_jobs,
         **kwargs
@@ -204,3 +217,51 @@ def evaluate_model(model, X_train, y_train, X_val, y_val, metrics_module=None):
         'train_predictions': y_train_pred,
         'val_predictions': y_val_pred
     }
+
+def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round=1000, 
+                   early_stopping_rounds=50):
+    """
+    Train LightGBM model with early stopping.
+    
+    Args:
+        X_train, y_train: Training data
+        X_val, y_val: Validation data
+        params: LightGBM parameters dictionary
+        num_boost_round: Maximum number of boosting iterations
+        early_stopping_rounds: Stop if no improvement for this many rounds
+        
+    Returns:
+        Trained LightGBM model
+    """
+    if not HAS_LIGHTGBM:
+        raise ImportError("LightGBM is not installed. Install with: pip install lightgbm")
+    
+    print(f"\nTraining LightGBM...")
+    print(f"Parameters: {params}")
+    start_time = time.time()
+    
+    # Create datasets
+    train_data = lgb.Dataset(X_train, label=y_train)
+    val_data = lgb.Dataset(X_val, label=y_val, reference=train_data)
+    
+    # Train model with callbacks
+    callbacks = [
+        lgb.early_stopping(stopping_rounds=early_stopping_rounds),
+        lgb.log_evaluation(period=100)
+    ]
+    
+    model = lgb.train(
+        params,
+        train_data,
+        num_boost_round=num_boost_round,
+        valid_sets=[train_data, val_data],
+        valid_names=['train', 'valid'],
+        callbacks=callbacks
+    )
+    
+    training_time = time.time() - start_time
+    print(f"\nTraining completed in {training_time:.2f} seconds")
+    print(f"Best iteration: {model.best_iteration}")
+    print(f"Best score: {model.best_score}")
+    
+    return model

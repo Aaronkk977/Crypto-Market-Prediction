@@ -142,6 +142,8 @@ This creates `train_fe.parquet` and `test_fe.parquet` in the `data/` directory.
 
 ## Model Training
 
+I have tried ridge regression, elastic net and lightGBM.
+
 ### Ridge Regression
 
 Train a Ridge regression model with StandardScaler:
@@ -198,31 +200,34 @@ The training set has 525,886 rows and the testing set has 538,150 rows.
 
 ### Ridge Regression + StandardScaler
 
-**Baseline Results** (alpha=1.0, 780 original + 9 engineered features):
+**Training Configuration:**
+- Model: RidgeCV with 3-fold internal CV for alpha selection
+- Data Split: 80% train / 20% validation (random split)
+- Feature Scaling: StandardScaler (mean=0, std=1)
+- Evaluation Metric: Pearson correlation (aligned with Kaggle)
 
-- Train Set: R² = 0.148, RMSE = 0.932, MAE = 0.619
-- Validation Set: R² = 0.141, RMSE = 0.937, MAE = 0.623
-
-### Ablation Study
+#### Ablation Study
 
 ```bash
 python scripts/ridge_ablation.py
 ```
 
-To evaluate feature contribution:
+Evaluate feature contribution with different feature subsets:
 
-| Experiment | Features | Best Alpha | R² | RMSE |
-|------------|----------|---------|----------|-------|
-| A (Baseline) | 780 original only | 0.01 | 0.1410 | 0.9369 |
-| B (Engineered) | 9 engineered only | 100 | 0.0007 | 1.0105 |
-| C (Combined) | All 789 features | 0.01 | 0.1414 | 0.9367 |
+| Experiment | Features | Best Alpha | Train R² | Train Pearson | Val R² | Val Pearson | Val RMSE | Time (s) |
+|------------|----------|------------|----------|---------------|--------|-------------|----------|----------|
+| A (Baseline) | 780 original only | 0.1 | 0.1479 | 0.3846 | 0.1410 | 0.3756 | 0.9369 | 234.3 |
+| B (Engineered) | 14 engineered only | 100.0 | 0.0013 | 0.0360 | 0.0007 | 0.0291 | 1.0105 | 1.1 |
+| C (Combined) | All 794 features | 0.1 | 0.1482 | 0.3849 | 0.1414 | 0.3762 | 0.9367 | 136.9 |
 
 **Key Findings:**
 - Predictive signal dominated by anonymized X1–X780 features
-- Engineered features provide minimal standalone predictive power
-- Marginal improvement (+0.0004 R²) when combined, likely within noise range
+- Engineered features alone show very weak predictive power (Pearson ≈ 0.03)
+- Combined model shows small improvement: +0.0004 R² / +0.0006 Pearson
+- Validation Pearson: 0.3756 (baseline) → 0.3762 (full) = +0.16% improvement
+- Note: Even small gains can be valuable in financial prediction when consistent
 
-### Feature Importance
+#### Feature Importance
 
 **Top 20 Features by Permutation Importance (Pearson Correlation):**
 

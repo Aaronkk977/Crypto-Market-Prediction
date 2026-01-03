@@ -4,9 +4,9 @@ Data splitting utilities.
 
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Generator
 
 def random_split(X, y, test_size=0.2, random_state=42) -> Tuple:
     """
@@ -60,21 +60,63 @@ def time_split(X, y, test_size=0.2) -> Tuple:
     
     return X_train, X_val, y_train, y_val
 
+def kfold_split(X, y, n_splits=5, random_state=42, shuffle=True) -> Generator:
+    """
+    Generate K-Fold cross-validation splits.
+    
+    Args:
+        X: Feature matrix
+        y: Target vector
+        n_splits: Number of folds (default: 5)
+        random_state: Random seed for reproducibility (default: 42)
+        shuffle: Whether to shuffle data before splitting (default: True)
+    
+    Yields:
+        Tuple: (fold_idx, X_train, X_val, y_train, y_val) for each fold
+    """
+    print(f"\nPerforming {n_splits}-Fold Cross-Validation...")
+    print(f"Shuffle: {shuffle}, Random state: {random_state}")
+    
+    kf = KFold(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+    
+    for fold_idx, (train_idx, val_idx) in enumerate(kf.split(X), 1):
+        if isinstance(X, pd.DataFrame):
+            X_train = X.iloc[train_idx]
+            X_val = X.iloc[val_idx]
+        else:
+            X_train = X[train_idx]
+            X_val = X[val_idx]
+        
+        if isinstance(y, pd.Series):
+            y_train = y.iloc[train_idx]
+            y_val = y.iloc[val_idx]
+        else:
+            y_train = y[train_idx]
+            y_val = y[val_idx]
+        
+        print(f"\nFold {fold_idx}/{n_splits}:")
+        print(f"  Train: {len(X_train)} samples ({len(X_train)/len(X)*100:.1f}%)")
+        print(f"  Val:   {len(X_val)} samples ({len(X_val)/len(X)*100:.1f}%)")
+        
+        yield fold_idx, X_train, X_val, y_train, y_val
+
 def split_data(df, split_method='random', test_size=0.2, random_state=42, 
-               target_col='label', drop_cols=None) -> Tuple:
+               target_col='label', drop_cols=None, n_splits=5) -> Tuple:
     """
     Split dataframe into features and target, then into train/validation sets.
     
     Args:
         df: Input dataframe
-        split_method: 'random' or 'time' (default: 'random')
-        test_size: Proportion for validation set (default: 0.2)
+        split_method: 'random', 'time', or 'kfold' (default: 'random')
+        test_size: Proportion for validation set (default: 0.2) - not used for kfold
         random_state: Random seed for random split (default: 42)
         target_col: Name of target column (default: 'label')
         drop_cols: Additional columns to drop from features (default: None)
+        n_splits: Number of folds for kfold (default: 5)
     
     Returns:
-        Tuple: (X_train, X_val, y_train, y_val)
+        Tuple: (X_train, X_val, y_train, y_val) for single split
+        Generator: yields (fold_idx, X_train, X_val, y_train, y_val) for kfold
     """
     print("\nPreparing data for splitting...")
     
@@ -95,8 +137,10 @@ def split_data(df, split_method='random', test_size=0.2, random_state=42,
         return random_split(X, y, test_size=test_size, random_state=random_state)
     elif split_method == 'time':
         return time_split(X, y, test_size=test_size)
+    elif split_method == 'kfold':
+        return kfold_split(X, y, n_splits=n_splits, random_state=random_state)
     else:
-        raise ValueError(f"Unknown split_method: {split_method}. Use 'random' or 'time'.")
+        raise ValueError(f"Unknown split_method: {split_method}. Use 'random', 'time', or 'kfold'.")
 
 def save_split(X_train, X_val, y_train, y_val, output_dir):
     """

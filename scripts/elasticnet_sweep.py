@@ -1,91 +1,67 @@
 #!/usr/bin/env python
 """
-Train Elastic Net model using configuration file.
+ElasticNet L1 Ratio Sweep Experiment.
 
 Usage:
-    python scripts/train_elasticnet.py [--config configs/elasticnet.yaml]
+    python scripts/elasticnet_sweep.py
 """
 
 import sys
 from pathlib import Path
-import yaml
-import argparse
+import pandas as pd
+import numpy as np
+import json
+import time
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from myproj.data import load_data
 from myproj.split import split_data
-from myproj.models import train_elasticnet_cv, scale_features, evaluate_model
+from myproj.models import train_elasticnet_cv, scale_features
+from myproj.metrics import calculate_metrics
 from myproj.utils import save_model, save_scaler
 
-def load_config(config_path):
-    """Load configuration from YAML file."""
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
-
-def main():
-    # Parse arguments
-    parser = argparse.ArgumentParser(description='Train ElasticNet model')
-    parser.add_argument('--config', type=str, default='configs/elasticnet.yaml',
-                        help='Path to config file')
-    args = parser.parse_args()
+def run_elasticnet_experiment(X_train, X_val, y_train, y_val, l1_ratio, experiment_name):
+    """
+    Run single ElasticNet experiment with specified L1 ratio.
     
-    # Load configuration
-    project_dir = Path(__file__).parent.parent
-    config_path = project_dir / args.config
-    config = load_config(config_path)
+    Args:
+        X_train, X_val, y_train, y_val: Split datasets (already scaled)
+        l1_ratio: L1 ratio (0=Ridge, 1=Lasso)
+        experiment_name: Name of the experiment
     
-    print("\n" + "="*60)
-    print("ELASTIC NET MODEL TRAINING")
-    print("="*60)
-    print(f"Config: {config_path}")
-    print(f"L1 Ratio: {config['model']['l1_ratio']}")
-    
-    # Load data
-    data_dir = project_dir / 'data'
-    train_path = data_dir / Path(config['data']['train_path']).name
-    df = load_data(train_path)
-    
-    # Split data
-    X_train, X_val, y_train, y_val = split_data(
-        df,
-        split_method=config['training']['split_method'],
-        test_size=config['training']['test_size'],
-        random_state=config['training']['random_state']
-    )
-    
-    # Scale features
-    X_train_scaled, X_val_scaled, scaler = scale_features(X_train, X_val)
+    Returns:
+        Dictionary with metrics and model
+    """
+    print(f"\n{'='*60}")
+    print(f"{experiment_name}")
+    print(f"{'='*60}")
     
     # Train model
-    model = train_elasticnet_cv(
-        X_train_scaled, y_train,
-        l1_ratio=config['model']['l1_ratio'],
-        cv=config['model']['cv'],
-        n_jobs=config['model']['n_jobs']
-    )
+    start_time = time.time()
+    model = train_elasticnet_cv(X_train, y_train, l1_ratio=l1_ratio, cv=3, n_jobs=4)
+    training_time = time.time() - start_time
     
     # Evaluate
-    results = evaluate_model(model, X_train_scaled, y_train, X_val_scaled, y_val)
+    y_train_pred = model.predict(X_train)
+    y_val_pred = model.predict(X_val)
     
-    # Save model and scaler
-    model_dir = project_dir / config['output']['model_dir']
-    scaler_dir = project_dir / config['output']['scaler_dir']
-    model_dir.mkdir(exist_ok=True, parents=True)
-    scaler_dir.mkdir(exist_ok=True, parents=True)
+    train_metrics = calculate_metrics(y_train, y_train_pred, prefix="Train")
+    val_metrics = calculate_metrics(y_val, y_val_pred, prefix="Validation")
     
-    save_model(model, model_dir / config['output']['model_name'])
-    save_scaler(scaler, scaler_dir / config['output']['scaler_name'])
+    results = {
+        'experiment': experiment_name,
+        'l1_ratio': l1_ratio,
+        'n_features': X_train.shape[1],
+        'best_alpha': float(model.alpha_),
+        'n_nonzero_coef': int(np.sum(model.coef_ != 0)),
+        'training_time': training_time,
+        'train_metrics': train_metrics,
+        'val_metrics': val_metrics
+    }
     
-    print("\n" + "="*60)
-    print("Training completed successfully!")
-    print("="*60)
-
-if __name__ == "__main__":
-    main()
-
+    return results, model
 
 def save_results(results_list, output_dir):
     """Save experiment results."""
@@ -93,7 +69,7 @@ def save_results(results_list, output_dir):
     output_dir.mkdir(exist_ok=True, parents=True)
     
     # Save JSON
-    with open(output_dir / 'elasticnet_results.json', 'w') as f:
+    with open(output_dir / 'elasticnet_sweep_results.json', 'w') as f:
         json.dump(results_list, f, indent=2)
     
     # Create comparison table
@@ -110,7 +86,7 @@ def save_results(results_list, output_dir):
         'Time (s)': r['training_time']
     } for r in results_list])
     
-    comparison.to_csv(output_dir / 'elasticnet_comparison.csv', index=False)
+    comparison.to_csv(output_dir / 'elasticnet_sweep_comparison.csv', index=False)
     
     print(f"\nResults saved to {output_dir}/")
     return comparison
@@ -143,24 +119,26 @@ def main():
     print(f"  Train: {X_train.shape[0]} samples, {X_train.shape[1]} features")
     print(f"  Validation: {X_val.shape[0]} samples")
     
+    # Scale features once
+    X_train_scaled, X_val_scaled, scaler = scale_features(X_train, X_val)
+    
     # L1 ratios to sweep
     l1_ratios = [0.05, 0.1, 0.2, 0.5, 0.8]
     
     print(f"\nL1 ratios to test: {l1_ratios}")
-    print("Note: L1 ratio=0 is Ridge, L1 ratio=1 is Lasso")
+    print("Note: L1 ratio=0 is Ridge, L1 ratio=1 is Lasso\n")
     
     # Run experiments
     results = []
     best_val_pearson = -np.inf
     best_model = None
-    best_scaler = None
     best_l1_ratio = None
     
     for l1_ratio in l1_ratios:
         experiment_name = f"Elastic Net (L1 ratio={l1_ratio})"
         
-        result, model, scaler = run_elasticnet_experiment(
-            X_train, X_val, y_train, y_val,
+        result, model = run_elasticnet_experiment(
+            X_train_scaled, X_val_scaled, y_train, y_val,
             l1_ratio, experiment_name
         )
         results.append(result)
@@ -170,7 +148,6 @@ def main():
         if val_pearson > best_val_pearson:
             best_val_pearson = val_pearson
             best_model = model
-            best_scaler = scaler
             best_l1_ratio = l1_ratio
     
     # Save results
@@ -186,8 +163,8 @@ def main():
     model_dir.mkdir(exist_ok=True, parents=True)
     scaler_dir.mkdir(exist_ok=True, parents=True)
     
-    save_model(best_model, model_dir / 'elasticnet_model.pkl')
-    save_scaler(best_scaler, scaler_dir / 'elasticnet_scaler.pkl')
+    save_model(best_model, model_dir / 'elasticnet_best_model.pkl')
+    save_scaler(scaler, scaler_dir / 'elasticnet_scaler.pkl')
     
     # Print summary
     print("\n" + "="*60)
@@ -221,7 +198,7 @@ def main():
               f"non-zero ({sparsity:.1f}% sparse)")
     
     print("\n" + "="*60)
-    print("Elastic Net experiment completed!")
+    print("Elastic Net sweep experiment completed!")
     print("="*60)
 
 if __name__ == "__main__":
