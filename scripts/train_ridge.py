@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 """
-Train Ridge Regression model with K-Fold CV (default) or single split.
+Train Ridge Regression model with K-Fold CV, GroupKFold CV, or single split.
 
 Usage:
-    python scripts/train_ridge.py                    # 5-Fold CV (default)
-    python scripts/train_ridge.py --cv 10            # 10-Fold CV
-    python scripts/train_ridge.py --single-split     # Single random split
+    python scripts/train_ridge.py                    # Use config settings (default)
+    python scripts/train_ridge.py --cv 10            # 10-Fold CV (override config)
+    python scripts/train_ridge.py --single-split     # Single split (override config)
     python scripts/train_ridge.py --config configs/ridge.yaml
+    
+Note: For time-series data, use GroupKFold in config to prevent label leakage.
 """
 
 import sys
@@ -31,20 +33,43 @@ def load_config(config_path):
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
-def train_with_kfold(df, n_folds, config, project_dir):
-    """Train with K-Fold Cross-Validation."""
+def train_with_cv(df, n_folds, config, project_dir, split_method=None):
+    """Train with Cross-Validation (KFold or GroupKFold)."""
+    # Determine split method from config or parameter
+    if split_method is None:
+        split_method = config['split'].get('cv_method', 'kfold')
+    
+    method_name = "GroupKFold" if split_method == 'group_kfold' else "K-Fold"
     print("\n" + "="*60)
-    print(f"RIDGE REGRESSION WITH {n_folds}-FOLD CROSS-VALIDATION")
+    print(f"RIDGE REGRESSION WITH {n_folds}-FOLD {method_name.upper()} CV")
     print("="*60)
     
-    # Prepare K-Fold splits
-    fold_generator = split_data(
-        df, 
-        split_method='kfold', 
-        n_splits=n_folds, 
-        random_state=config['split'].get('random_state', 42),
-        target_col=config['data']['target_col']
-    )
+    if split_method == 'group_kfold':
+        print("⚠️  Using GroupKFold to prevent temporal label leakage")
+    
+    # Prepare CV splits
+    split_kwargs = {
+        'df': df,
+        'split_method': split_method,
+        'n_splits': n_folds,
+        'target_col': config['data']['target_col']
+    }
+    
+    # Add method-specific parameters
+    if split_method == 'group_kfold':
+        group_col = config['split'].get('group_col', 'time_group_id')
+        split_kwargs['group_col'] = group_col
+        
+        # Check if group column exists
+        if group_col not in df.columns:
+            raise ValueError(
+                f"GroupKFold requires '{group_col}' column. "
+                f"Run: python scripts/add_time_groups.py"
+            )
+    else:
+        split_kwargs['random_state'] = config['split'].get('random_state', 42)
+    
+    fold_generator = split_data(**split_kwargs)
     
     # Store results for each fold
     fold_results = []
@@ -118,11 +143,19 @@ def train_with_kfold(df, n_folds, config, project_dir):
     print(f"  Val MAE:       {np.mean(metrics_summary['val_mae']):.6f} ± {np.std(metrics_summary['val_mae']):.6f}")
     
     # Save results
-    results_dir = project_dir / 'results' / 'ridge_cv'
+    cv_suffix = 'grouped_cv' if split_method == 'group_kfold' else 'cv'
+    results_dir = project_dir / 'results' / f'ridge_{cv_suffix}'
     results_dir.mkdir(exist_ok=True, parents=True)
     
+    results_data = {
+        'method': split_method,
+        'n_folds': n_folds,
+        'fold_results': fold_results,
+        'note': 'GroupKFold used to prevent temporal label leakage' if split_method == 'group_kfold' else 'Standard KFold CV'
+    }
+    
     with open(results_dir / 'cv_results.json', 'w') as f:
-        json.dump(fold_results, f, indent=2)
+        json.dump(results_data, f, indent=2)
     
     summary = pd.DataFrame([{
         'Fold': r['fold'],
@@ -217,9 +250,9 @@ def main():
     parser.add_argument('--config', type=str, default='configs/ridge.yaml',
                         help='Path to config file (default: configs/ridge.yaml)')
     parser.add_argument('--single-split', action='store_true',
-                        help='Use single train/val split instead of K-Fold CV')
-    parser.add_argument('--cv', type=int, default=5,
-                        help='Number of folds for K-Fold CV (default: 5)')
+                        help='Use single train/val split (overrides config)')
+    parser.add_argument('--cv', type=int, default=None,
+                        help='Number of folds for CV (overrides config)')
     args = parser.parse_args()
     
     # Set up paths
@@ -234,7 +267,7 @@ def main():
         print("No config file found, using defaults...")
         config = {
             'data': {'train_path': 'data/train_fe.parquet', 'target_col': 'label'},
-            'split': {'method': 'random', 'test_size': 0.2, 'random_state': 42},
+            'split': {'method': 'random', 'test_size': 0.2, 'random_state': 42, 'cv_method': 'kfold', 'n_splits': 5},
             'model': {'alphas': [0.01, 0.1, 1.0, 10.0, 100.0]},
             'training': {
                 'model_dir': 'artifacts/models',
@@ -242,15 +275,38 @@ def main():
             }
         }
     
+    # Determine data path based on CV method
+    cv_method = config['split'].get('cv_method', 'kfold')
+    if cv_method == 'group_kfold' and 'train_path' in config['data']:
+        # Use grouped data for GroupKFold
+        default_path = config['data']['train_path']
+        if 'train_fe' in default_path and 'grouped' not in default_path:
+            # Support both train_fe.parquet and train_fe_filtered.parquet
+            grouped_path = default_path.replace('.parquet', '_grouped.parquet')
+            if (project_dir / grouped_path).exists():
+                config['data']['train_path'] = grouped_path
+                print(f"ℹ️  Using grouped data: {grouped_path}")
+            else:
+                print(f"⚠️  Warning: GroupKFold selected but {grouped_path} not found.")
+                print(f"   Run: python scripts/add_time_groups.py --input {Path(default_path).name}")
+    
     # Load data
     data_path = project_dir / config['data']['train_path']
     df = load_data(data_path)
     
-    # Train based on mode
+    # Determine training mode
+    use_cv = config['split'].get('use_cv', True)
+    
+    # Command line arguments override config
     if args.single_split:
-        train_with_single_split(df, config, project_dir)
+        use_cv = False
+    
+    # Train based on mode
+    if use_cv:
+        n_folds = args.cv if args.cv is not None else config['split'].get('n_splits', 5)
+        train_with_cv(df, n_folds, config, project_dir)
     else:
-        train_with_kfold(df, args.cv, config, project_dir)
+        train_with_single_split(df, config, project_dir)
     
     print("\n" + "="*60)
     print("Training completed successfully!")

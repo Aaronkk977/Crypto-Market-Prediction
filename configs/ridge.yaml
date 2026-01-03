@@ -2,24 +2,31 @@
 
 # Data settings
 data:
-  train_path: "data/train_fe.parquet"
-  test_path: "data/test_fe.parquet"
+  train_path: "data/train_fe_filtered.parquet"  # Will auto-switch to train_fe_filtered_grouped.parquet if cv_method is group_kfold
+  test_path: "data/test_fe_filtered.parquet"
   target_col: "label"
 
 # Split settings
 split:
-  method: "random"  # or "time"
+  # For single split (use_cv: false)
+  method: "random"            # Options: "random", "time"
   test_size: 0.2
   random_state: 42
+  
+  # For cross-validation (use_cv: true)
+  use_cv: true                # Set to false for single split
+  cv_method: "group_kfold"    # Options: "kfold", "group_kfold"
+  n_splits: 5                 # Number of folds
+  group_col: "time_group_id"  # Required for group_kfold (column name for grouping)
+  
+  # Note: Use "group_kfold" for time-series data to prevent temporal label leakage
+  # Run "python scripts/add_time_groups.py" first to add time_group_id column
 
 # Model settings
 model:
   type: "ridge"
-  alpha: 0.1
-  # For RidgeCV, use:
-  # use_cv: true
-  # alphas: [0.1, 1.0, 10.0, 100.0]
-  # cv_folds: 3
+  # Alphas to test in RidgeCV
+  alphas: [0.1, 1.0, 10.0, 100.0, 1000.0]
 
 # Feature settings
 features:
@@ -42,3 +49,4 @@ evaluation:
     - "rmse"
     - "mae"
     - "r2"
+    - "pearson"

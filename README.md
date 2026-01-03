@@ -115,8 +115,16 @@ This script will display:
 - Statistical summary
 - Missing value analysis
 
-### Outcome
+**Outcome**:
 There are 786 columns: bid quantity, ask quantity, buy quantity, sell quantity, volume, 780 anonymized features and label (market price movement).
+
+### Time-Based Grouping
+
+We found that data points with similar timestamps exhibit similar structures. Therefore, we grouped all data within the same hour together, resulting in 8,784 groups (24 hours × 366 days).
+
+### Correlated Features
+
+We identified 96 pairs of highly correlated features (|r| > 0.995). Due to overlapping relationships among these pairs, we removed 73 redundant features (9.4% reduction), reducing the feature set from 780 to 707 original features.
 
 ## Feature Engineering
 
