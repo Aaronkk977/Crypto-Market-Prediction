@@ -235,52 +235,53 @@ Evaluate feature contribution with different feature subsets:
 - Validation Pearson: 0.3756 (baseline) → 0.3762 (full) = +0.16% improvement
 - Note: Even small gains can be valuable in financial prediction when consistent
 
-#### Feature Importance
+#### Feature Importance (After Correlation Filtering)
 
 **Top 20 Features by Permutation Importance (Pearson Correlation):**
 
 | Feature | Importance | Std |
 |---------|------------|-----|
-| X584 | 0.3641 | ±0.0022 |
-| X578 | 0.3553 | ±0.0025 |
-| X587 | 0.3548 | ±0.0023 |
-| X569 | 0.3536 | ±0.0023 |
-| X627 | 0.3531 | ±0.0024 |
-| X731 | 0.3498 | ±0.0022 |
-| X129 | 0.3469 | ±0.0018 |
-| X623 | 0.3435 | ±0.0022 |
-| X254 | 0.3433 | ±0.0023 |
-| X590 | 0.3406 | ±0.0022 |
-| X695 | 0.3384 | ±0.0023 |
-| X581 | 0.3381 | ±0.0023 |
-| X575 | 0.3370 | ±0.0023 |
-| X124 | 0.3369 | ±0.0014 |
-| X699 | 0.3366 | ±0.0023 |
-| X640 | 0.3359 | ±0.0020 |
-| X470 | 0.3340 | ±0.0023 |
-| X21 | 0.3322 | ±0.0026 |
-| X691 | 0.3317 | ±0.0022 |
-| X620 | 0.3315 | ±0.0019 |
+| X263 | 0.1204 | ±0.0020 |
+| X762 | 0.1180 | ±0.0015 |
+| X386 | 0.1163 | ±0.0016 |
+| X380 | 0.1139 | ±0.0013 |
+| X591 | 0.1090 | ±0.0011 |
+| X16 | 0.1088 | ±0.0017 |
+| X779 | 0.1037 | ±0.0015 |
+| X277 | 0.1012 | ±0.0013 |
+| X416 | 0.0939 | ±0.0013 |
+| X127 | 0.0938 | ±0.0014 |
+| X780 | 0.0938 | ±0.0013 |
+| X52 | 0.0921 | ±0.0013 |
+| X214 | 0.0889 | ±0.0010 |
+| X219 | 0.0886 | ±0.0016 |
+| X51 | 0.0870 | ±0.0013 |
+| X21 | 0.0827 | ±0.0016 |
+| X332 | 0.0827 | ±0.0014 |
+| X254 | 0.0823 | ±0.0016 |
+| X268 | 0.0798 | ±0.0012 |
+| X72 | 0.0791 | ±0.0013 |
 
 **Engineered Features Importance:**
 
 | Feature | Importance | Std |
 |---------|------------|-----|
-| book_to_trade_ratio_log1p | 0.000767 | ±0.000113 |
-| vol_log1p | 0.000568 | ±0.000171 |
-| bid_qty_log1p | 0.000535 | ±0.000107 |
-| trade_imbalance | 0.000395 | ±0.000079 |
-| imbalance_best | 0.000207 | ±0.000094 |
-| ask_to_sell | 0.000111 | ±0.000060 |
-| bid_to_buy | 0.000067 | ±0.000053 |
-| total_best_qty_log1p | 0.000059 | ±0.000039 |
-| ask_qty_log1p | 0.000001 | ±0.000015 |
+| vol_log1p | 0.001461 | ±0.000285 |
+| book_to_trade_ratio_log1p | 0.001232 | ±0.000140 |
+| imbalance_best | 0.000518 | ±0.000159 |
+| bid_qty_log1p | 0.000440 | ±0.000117 |
+| trade_imbalance | 0.000266 | ±0.000083 |
+| total_best_qty_log1p | 0.000110 | ±0.000063 |
+| ask_to_sell | 0.000087 | ±0.000064 |
+| bid_to_buy | 0.000002 | ±0.000007 |
+| ask_qty_log1p | -0.000001 | ±0.000002 |
 
 **Analysis:**
-- Evaluation metric changed to Pearson correlation (aligned with Kaggle competition)
-- Top anonymized features (X584, X578, X587) show importance ~1000x higher than engineered features
-- Average engineered feature importance: ~3.3×10⁻⁴
-- Engineered features provide marginal but consistent signal
+- **Model trained on 707 filtered features** (removed 73 highly correlated features, 9.4% reduction)
+- Feature importance ranking changed significantly after removing redundant features
+- Top features (X263, X762, X386) show importance ~100x higher than engineered features
+- Average engineered feature importance: ~4.5×10⁻⁴
+- Engineered features continue to provide marginal but consistent signal
 - Results saved to: `results/importance/permutation_importance.csv`
 
 

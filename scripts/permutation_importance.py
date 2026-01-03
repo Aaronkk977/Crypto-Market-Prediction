@@ -33,10 +33,10 @@ def main():
     print("PERMUTATION IMPORTANCE ANALYSIS")
     print("="*60)
     
-    # Load data (use filtered version)
+    # Load data (use filtered version without time_group_id)
     train_path = data_dir / 'train_fe_filtered.parquet'
     if not train_path.exists():
-        print(f"\n⚠️  {train_path} not found, using train_fe.parquet instead")
+        print(f"\n⚠️  {train_path.name} not found, using train_fe.parquet instead")
         train_path = data_dir / 'train_fe.parquet'
     
     print(f"\n📂 Loading data from {train_path.name}...")

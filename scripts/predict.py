@@ -9,6 +9,7 @@ Usage:
 import sys
 from pathlib import Path
 import pandas as pd
+import numpy as np
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
@@ -30,7 +31,7 @@ def main():
     print("="*60)
     
     # Load test data
-    test_path = data_dir / 'test_fe.parquet'
+    test_path = data_dir / 'test_fe_filtered.parquet'
     df_test = load_data(test_path)
     
     # Remove label column if it exists (test set has dummy labels)
@@ -49,10 +50,18 @@ def main():
     print("Generating predictions...")
     predictions = model.predict(X_test_scaled)
     
-    # Save predictions
+    # --- 修改部分：按照正確格式儲存預測結果 ---
     output_path = output_dir / 'predictions.csv'
-    pred_df = pd.DataFrame({'prediction': predictions})
+    
+    # 建立包含 ID (從 1 開始) 與 prediction 的 DataFrame
+    pred_df = pd.DataFrame({
+        'ID': np.arange(1, len(predictions) + 1),
+        'prediction': predictions
+    })
+    
+    # 儲存為 CSV，不包含 pandas 預設索引
     pred_df.to_csv(output_path, index=False)
+    # ---------------------------------------
     
     print(f"\nPredictions saved to {output_path}")
     print(f"Number of predictions: {len(predictions)}")
