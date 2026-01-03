@@ -3,8 +3,31 @@ Evaluation metrics and performance tracking.
 """
 
 import numpy as np
-from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from scipy.stats import pearsonr
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, make_scorer
 from typing import Dict
+
+def pearson_correlation(y_true, y_pred):
+    """
+    Calculate Pearson correlation coefficient.
+    
+    Args:
+        y_true: True target values
+        y_pred: Predicted values
+        
+    Returns:
+        float: Pearson correlation coefficient
+    """
+    return pearsonr(y_true, y_pred)[0]
+
+def get_pearson_scorer():
+    """
+    Get sklearn scorer for Pearson correlation.
+    
+    Returns:
+        Scorer object for use with sklearn models
+    """
+    return make_scorer(pearson_correlation)
 
 def calculate_metrics(y_true, y_pred, prefix="") -> Dict:
     """
@@ -22,21 +45,24 @@ def calculate_metrics(y_true, y_pred, prefix="") -> Dict:
     rmse = np.sqrt(mse)
     mae = mean_absolute_error(y_true, y_pred)
     r2 = r2_score(y_true, y_pred)
+    pearson = pearson_correlation(y_true, y_pred)
     
     metrics = {
         'mse': mse,
         'rmse': rmse,
         'mae': mae,
-        'r2': r2
+        'r2': r2,
+        'pearson': pearson
     }
     
     # Print metrics
     if prefix:
         print(f"\n{prefix} Set Performance:")
-        print(f"  MSE:  {mse:.6f}")
-        print(f"  RMSE: {rmse:.6f}")
-        print(f"  MAE:  {mae:.6f}")
-        print(f"  R²:   {r2:.6f}")
+        print(f"  MSE:     {mse:.6f}")
+        print(f"  RMSE:    {rmse:.6f}")
+        print(f"  MAE:     {mae:.6f}")
+        print(f"  R²:      {r2:.6f}")
+        print(f"  Pearson: {pearson:.6f}")
     
     return metrics
 

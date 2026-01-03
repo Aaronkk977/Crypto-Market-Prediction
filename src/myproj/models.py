@@ -3,7 +3,7 @@ Model training and prediction utilities.
 """
 
 import numpy as np
-from sklearn.linear_model import Ridge, RidgeCV
+from sklearn.linear_model import Ridge, RidgeCV, ElasticNetCV
 from sklearn.preprocessing import StandardScaler
 import time
 from typing import Tuple, Optional
@@ -61,6 +61,87 @@ def train_ridge_cv(X_train, y_train, alphas=None, cv=3, **kwargs):
     print(f"Best alpha: {model.alpha_}")
     
     return model
+
+def train_elasticnet_cv(X_train, y_train, l1_ratio=0.5, alphas=None, cv=3, n_jobs=4, **kwargs):
+    """
+    Train ElasticNetCV model with cross-validation for alpha selection.
+    
+    Args:
+        X_train: Training features (should be scaled)
+        y_train: Training target
+        l1_ratio: The ElasticNet mixing parameter (0 <= l1_ratio <= 1)
+                  l1_ratio=0: Ridge (L2), l1_ratio=1: Lasso (L1)
+        alphas: Array of alpha values to try (default: 50 values from 0.001 to 1000)
+        cv: Number of cross-validation folds (default: 3)
+        n_jobs: Number of parallel jobs (default: 4)
+        **kwargs: Additional arguments for ElasticNetCV model
+        
+    Returns:
+        Trained ElasticNetCV model
+    """
+    if alphas is None:
+        alphas = np.logspace(-3, 3, 50)
+    
+    print(f"\nTraining ElasticNetCV (L1 ratio={l1_ratio})...")
+    print(f"Using {cv}-fold cross-validation with {len(alphas)} alpha values...")
+    start_time = time.time()
+    
+    model = ElasticNetCV(
+        l1_ratio=l1_ratio,
+        alphas=alphas,
+        cv=cv,
+        max_iter=10000,
+        random_state=42,
+        n_jobs=n_jobs,
+        **kwargs
+    )
+    model.fit(X_train, y_train)
+    
+    training_time = time.time() - start_time
+    n_nonzero = np.sum(model.coef_ != 0)
+    sparsity = (1 - n_nonzero / len(model.coef_)) * 100
+    
+    print(f"Training completed in {training_time:.2f} seconds")
+    print(f"Best alpha: {model.alpha_:.6f}")
+    print(f"Non-zero coefficients: {n_nonzero}/{len(model.coef_)} ({sparsity:.1f}% sparse)")
+    
+    return model
+
+def train_elasticnet_sweep(X_train, y_train, l1_ratios=None, alphas=None, cv=3, n_jobs=4):
+    """
+    Train multiple ElasticNet models with different L1 ratios.
+    
+    Args:
+        X_train: Training features (should be scaled)
+        y_train: Training target
+        l1_ratios: List of L1 ratios to try (default: [0.05, 0.1, 0.2, 0.5, 0.8])
+        alphas: Array of alpha values to try
+        cv: Number of cross-validation folds
+        n_jobs: Number of parallel jobs
+        
+    Returns:
+        Dictionary mapping l1_ratio to trained model
+    """
+    if l1_ratios is None:
+        l1_ratios = [0.05, 0.1, 0.2, 0.5, 0.8]
+    
+    print(f"\n{'='*60}")
+    print(f"ELASTIC NET L1 RATIO SWEEP")
+    print(f"{'='*60}")
+    print(f"L1 ratios to test: {l1_ratios}")
+    
+    models = {}
+    for l1_ratio in l1_ratios:
+        model = train_elasticnet_cv(
+            X_train, y_train,
+            l1_ratio=l1_ratio,
+            alphas=alphas,
+            cv=cv,
+            n_jobs=n_jobs
+        )
+        models[l1_ratio] = model
+    
+    return models
 
 def scale_features(X_train, X_val=None, scaler=None) -> Tuple:
     """

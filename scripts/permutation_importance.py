@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from myproj.data import load_data, get_feature_groups
 from myproj.split import split_data
 from myproj.utils import load_model, load_scaler
+from myproj.metrics import get_pearson_scorer
 import time
 
 def main():
@@ -25,7 +26,7 @@ def main():
     data_dir = project_dir / 'data'
     model_dir = project_dir / 'artifacts' / 'models'
     scaler_dir = project_dir / 'artifacts' / 'scalers'
-    output_dir = project_dir / 'artifacts' / 'results'
+    output_dir = project_dir / 'results' / 'importance'
     output_dir.mkdir(exist_ok=True, parents=True)
     
     print("\n" + "="*60)
@@ -57,12 +58,15 @@ def main():
     print("(This may take a few minutes...)")
     start_time = time.time()
     
+    # Use Pearson correlation scorer
+    pearson_score = get_pearson_scorer()
+    
     perm_importance = permutation_importance(
         model, X_val_scaled, y_val,
-        n_repeats=10,
+        n_repeats=10, 
         random_state=42,
-        scoring='r2',
-        n_jobs=-1  # Use all CPU cores
+        scoring=pearson_score,
+        n_jobs=4  # Limit to 4 cores instead of all (-1)
     )
     
     calc_time = time.time() - start_time

@@ -150,14 +150,6 @@ Train a Ridge regression model with StandardScaler:
 python scripts/train_ridge.py
 ```
 
-The training pipeline:
-1. Loads feature-engineered data
-2. Performs train/validation split (80/20 random split)
-3. Standardizes features (mean=0, std=1)
-4. Trains Ridge model (alpha=1.0)
-5. Evaluates on train and validation sets
-6. Saves model and scaler to `artifacts/`
-
 Configuration is managed via `configs/ridge.yaml`.
 
 ### Generate Predictions
@@ -219,11 +211,11 @@ python scripts/ridge_ablation.py
 
 To evaluate feature contribution:
 
-| Experiment | Features | R² | RMSE |
-|------------|----------|---------|----------|
-| A (Baseline) | 780 original only | 0.1410 | 0.9369 |
-| B (Engineered) | 9 engineered only | 0.0007 | 1.0105 |
-| C (Combined) | All 789 features | 0.1414 | 0.9367 |
+| Experiment | Features | Best Alpha | R² | RMSE |
+|------------|----------|---------|----------|-------|
+| A (Baseline) | 780 original only | 0.01 | 0.1410 | 0.9369 |
+| B (Engineered) | 9 engineered only | 100 | 0.0007 | 1.0105 |
+| C (Combined) | All 789 features | 0.01 | 0.1414 | 0.9367 |
 
 **Key Findings:**
 - Predictive signal dominated by anonymized X1–X780 features
@@ -232,49 +224,51 @@ To evaluate feature contribution:
 
 ### Feature Importance
 
-**Top 20 Features by Permutation Importance:**
+**Top 20 Features by Permutation Importance (Pearson Correlation):**
 
 | Feature | Importance | Std |
 |---------|------------|-----|
-| X590 | 103.49 | ±0.24 |
-| X584 | 95.63 | ±0.24 |
-| X587 | 70.22 | ±0.23 |
-| X581 | 69.42 | ±0.23 |
-| X578 | 67.45 | ±0.16 |
-| X575 | 64.27 | ±0.23 |
-| X569 | 61.85 | ±0.22 |
-| X40 | 57.26 | ±0.17 |
-| X572 | 53.72 | ±0.13 |
-| X695 | 49.94 | ±0.12 |
-| X42 | 47.03 | ±0.15 |
-| X291 | 42.46 | ±0.16 |
-| X48 | 40.71 | ±0.14 |
-| X289 | 39.80 | ±0.18 |
-| X696 | 33.01 | ±0.12 |
-| X448 | 30.29 | ±0.07 |
-| X691 | 25.18 | ±0.06 |
-| X692 | 24.52 | ±0.10 |
-| X699 | 23.99 | ±0.07 |
-| X295 | 23.04 | ±0.11 |
+| X584 | 0.3641 | ±0.0022 |
+| X578 | 0.3553 | ±0.0025 |
+| X587 | 0.3548 | ±0.0023 |
+| X569 | 0.3536 | ±0.0023 |
+| X627 | 0.3531 | ±0.0024 |
+| X731 | 0.3498 | ±0.0022 |
+| X129 | 0.3469 | ±0.0018 |
+| X623 | 0.3435 | ±0.0022 |
+| X254 | 0.3433 | ±0.0023 |
+| X590 | 0.3406 | ±0.0022 |
+| X695 | 0.3384 | ±0.0023 |
+| X581 | 0.3381 | ±0.0023 |
+| X575 | 0.3370 | ±0.0023 |
+| X124 | 0.3369 | ±0.0014 |
+| X699 | 0.3366 | ±0.0023 |
+| X640 | 0.3359 | ±0.0020 |
+| X470 | 0.3340 | ±0.0023 |
+| X21 | 0.3322 | ±0.0026 |
+| X691 | 0.3317 | ±0.0022 |
+| X620 | 0.3315 | ±0.0019 |
 
 **Engineered Features Importance:**
 
 | Feature | Importance | Std |
 |---------|------------|-----|
-| book_to_trade_ratio_log1p | 0.000597 | ±0.000086 |
-| vol_log1p | 0.000434 | ±0.000130 |
-| bid_qty_log1p | 0.000419 | ±0.000082 |
-| trade_imbalance | 0.000353 | ±0.000065 |
-| imbalance_best | 0.000149 | ±0.000069 |
-| ask_to_sell | 0.000100 | ±0.000049 |
-| bid_to_buy | 0.000068 | ±0.000045 |
-| total_best_qty_log1p | 0.000047 | ±0.000030 |
-| ask_qty_log1p | 0.000001 | ±0.000010 |
+| book_to_trade_ratio_log1p | 0.000767 | ±0.000113 |
+| vol_log1p | 0.000568 | ±0.000171 |
+| bid_qty_log1p | 0.000535 | ±0.000107 |
+| trade_imbalance | 0.000395 | ±0.000079 |
+| imbalance_best | 0.000207 | ±0.000094 |
+| ask_to_sell | 0.000111 | ±0.000060 |
+| bid_to_buy | 0.000067 | ±0.000053 |
+| total_best_qty_log1p | 0.000059 | ±0.000039 |
+| ask_qty_log1p | 0.000001 | ±0.000015 |
 
 **Analysis:**
-- Top anonymized features (X590, X584, X587) show importance 2-3 orders of magnitude higher than engineered features
-- Average engineered feature importance: ~2.4×10⁻⁴
-- In financial modeling, even small incremental gains can be valuable when consistently reproducible
+- Evaluation metric changed to Pearson correlation (aligned with Kaggle competition)
+- Top anonymized features (X584, X578, X587) show importance ~1000x higher than engineered features
+- Average engineered feature importance: ~3.3×10⁻⁴
+- Engineered features provide marginal but consistent signal
+- Results saved to: `results/importance/permutation_importance.csv`
 
 
 
