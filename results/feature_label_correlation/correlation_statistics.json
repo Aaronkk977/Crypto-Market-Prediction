@@ -1,0 +1,15 @@
+{
+  "mean_correlation": 0.012404123845474086,
+  "std_correlation": 0.01931022903259198,
+  "mean_abs_correlation": 0.017930255433761425,
+  "max_positive_correlation": 0.09056130214388526,
+  "max_negative_correlation": -0.04429003016126687,
+  "max_abs_correlation": 0.09056130214388526,
+  "median_abs_correlation": 0.01387175321449758,
+  "num_features": 780,
+  "num_abs_corr_gte_0.01": 501,
+  "num_abs_corr_gte_0.05": 32,
+  "num_abs_corr_gte_0.1": 0,
+  "num_abs_corr_gte_0.2": 0,
+  "num_abs_corr_gte_0.3": 0
+}

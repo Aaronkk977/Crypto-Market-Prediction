@@ -126,6 +126,10 @@ We found that data points with similar timestamps exhibit similar structures. Th
 
 We identified 96 pairs of highly correlated features (|r| > 0.995). Due to overlapping relationships among these pairs, we removed 73 redundant features (9.4% reduction), reducing the feature set from 780 to 707 original features.
 
+### Correlation between Features and Label
+
+
+
 ## Feature Engineering
 
 The project adds 9 engineered features to the original 780 anonymized features:
@@ -214,28 +218,11 @@ The training set has 525,886 rows and the testing set has 538,150 rows.
 - Feature Scaling: StandardScaler (mean=0, std=1)
 - Evaluation Metric: Pearson correlation (aligned with Kaggle)
 
-#### Ablation Study
+#### Feature Importance (After Correlation Filtering)
 
 ```bash
-python scripts/ridge_ablation.py
+python scripts/permutation_importatnce.py
 ```
-
-Evaluate feature contribution with different feature subsets:
-
-| Experiment | Features | Best Alpha | Train R² | Train Pearson | Val R² | Val Pearson | Val RMSE | Time (s) |
-|------------|----------|------------|----------|---------------|--------|-------------|----------|----------|
-| A (Baseline) | 780 original only | 0.1 | 0.1479 | 0.3846 | 0.1410 | 0.3756 | 0.9369 | 234.3 |
-| B (Engineered) | 14 engineered only | 100.0 | 0.0013 | 0.0360 | 0.0007 | 0.0291 | 1.0105 | 1.1 |
-| C (Combined) | All 794 features | 0.1 | 0.1482 | 0.3849 | 0.1414 | 0.3762 | 0.9367 | 136.9 |
-
-**Key Findings:**
-- Predictive signal dominated by anonymized X1–X780 features
-- Engineered features alone show very weak predictive power (Pearson ≈ 0.03)
-- Combined model shows small improvement: +0.0004 R² / +0.0006 Pearson
-- Validation Pearson: 0.3756 (baseline) → 0.3762 (full) = +0.16% improvement
-- Note: Even small gains can be valuable in financial prediction when consistent
-
-#### Feature Importance (After Correlation Filtering)
 
 **Top 20 Features by Permutation Importance (Pearson Correlation):**
 
@@ -286,8 +273,31 @@ Evaluate feature contribution with different feature subsets:
 
 ### LightGBM
 
+5-fold, tracking pearson score while training
 Private score: 0.05462
 Public score: 0.04803
+
+adjusting training rounds from 2000 to 2500 did not improve the score on test set while validation score did keep going up.
+Private Score: 0.03637
+Public score: 0.04847
+
+ablation
+============================================================
+ABLATION STUDY SUMMARY
+============================================================
+N Features   Val Pearson          Val RMSE             Best Iter
+------------------------------------------------------------
+30           0.685097 ± 0.006545  0.746899 ± 0.009092  2500
+50           0.721540 ± 0.008342  0.712206 ± 0.010727  2500
+100          0.749898 ± 0.004479  0.683133 ± 0.011124  2500
+200          0.765003 ± 0.004981  0.664640 ± 0.012870  2500
+500          0.773249 ± 0.004759  0.654769 ± 0.012312  2500
+
+
+2000 rounds with 200 features
+Private score: 0.05044
+Score: 0.04909
+
 
 ## License
 

@@ -13,6 +13,7 @@ import argparse
 import numpy as np
 import json
 import time
+import pandas as pd
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
@@ -22,18 +23,47 @@ from myproj.split import split_data
 from myproj.models import train_lightgbm
 from myproj.metrics import calculate_metrics
 
-try:
-    import lightgbm as lgb
-except ImportError:
-    print("Error: LightGBM is not installed.")
-    print("Install with: pip install lightgbm")
-    sys.exit(1)
+import lightgbm as lgb
+
 
 def load_config(config_path):
     """Load configuration from YAML file."""
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
     return config
+
+def load_top_features(feature_importance_path, top_n=200):
+    """Load top N features from feature importance CSV file."""
+    if not Path(feature_importance_path).exists():
+        print(f"Warning: Feature importance file not found at {feature_importance_path}")
+        return None
+    
+    df_importance = pd.read_csv(feature_importance_path)
+    top_features = df_importance.head(top_n)['feature'].tolist()
+    print(f"\nLoaded top {len(top_features)} features from {feature_importance_path}")
+    return top_features
+
+def filter_features(df, top_features, target_col, group_col=None):
+    """Filter dataframe to only include top features and target."""
+    if top_features is None:
+        return df
+    
+    # Keep only features that exist in the dataframe
+    available_features = [f for f in top_features if f in df.columns]
+    missing_features = [f for f in top_features if f not in df.columns]
+    
+    if missing_features:
+        print(f"Warning: {len(missing_features)} features not found in data")
+    
+    # Include target column and group column (if specified)
+    cols_to_keep = available_features + [target_col]
+    if group_col and group_col in df.columns:
+        cols_to_keep.append(group_col)
+    
+    df_filtered = df[cols_to_keep]
+    
+    print(f"Filtered data: {len(available_features)} features (from {len(df.columns)-1} original features)")
+    return df_filtered
 
 def train_single_split(df, config, project_dir):
     """Train model using a single train/validation split."""
@@ -242,6 +272,21 @@ def main():
     data_dir = project_dir / 'data'
     train_path = data_dir / Path(config['data']['train_path']).name
     df = load_data(train_path)
+    
+    # Filter features if enabled in config
+    if config.get('feature_selection', {}).get('enabled', False):
+        top_n = config['feature_selection']['top_n_features']
+        importance_file = config['feature_selection']['importance_file']
+        feature_importance_path = project_dir / importance_file
+        print(f"\nFeature selection enabled: Using top {top_n} features")
+        top_features = load_top_features(feature_importance_path, top_n)
+        
+        # Get group_col if using group_kfold
+        group_col = None
+        if config['split'].get('use_cv') and config['split'].get('cv_method') == 'group_kfold':
+            group_col = config['split'].get('group_col')
+        
+        df = filter_features(df, top_features, config['data']['target_col'], group_col)
     
     # Determine training mode
     use_cv = config['split'].get('use_cv', False)

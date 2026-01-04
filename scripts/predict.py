@@ -14,6 +14,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import argparse
+import yaml
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
@@ -27,6 +28,38 @@ try:
 except ImportError:
     HAS_LIGHTGBM = False
 
+def load_config(config_path):
+    """Load configuration from YAML file."""
+    with open(config_path, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
+
+def load_top_features(feature_importance_path, top_n=200):
+    """Load top N features from feature importance CSV file."""
+    if not Path(feature_importance_path).exists():
+        print(f"Warning: Feature importance file not found at {feature_importance_path}")
+        return None
+    
+    df_importance = pd.read_csv(feature_importance_path)
+    top_features = df_importance.head(top_n)['feature'].tolist()
+    return top_features
+
+def filter_test_features(df_test, top_features):
+    """Filter test data to only include top features."""
+    if top_features is None:
+        return df_test
+    
+    # Keep only features that exist in the dataframe
+    available_features = [f for f in top_features if f in df_test.columns]
+    missing_features = [f for f in top_features if f not in df_test.columns]
+    
+    if missing_features:
+        print(f"Warning: {len(missing_features)} features not found in test data")
+    
+    df_filtered = df_test[available_features]
+    print(f"Filtered test data: {len(available_features)} features (from {len(df_test.columns)} original features)")
+    return df_filtered
+
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser(description='Generate predictions using trained model')
@@ -38,6 +71,8 @@ def main():
                         help='Test data filename (default: test_fe_filtered.parquet)')
     parser.add_argument('--output', type=str, default=None,
                         help='Output filename (default: predictions_{model_name}.csv)')
+    parser.add_argument('--config', type=str, default='configs/lightgbm.yaml',
+                        help='Path to config file for feature selection (default: configs/lightgbm.yaml)')
     args = parser.parse_args()
     
     # Set up paths
@@ -63,6 +98,10 @@ def main():
     
     print(f"Model: {model_path}")
     
+    # Load configuration for feature selection
+    config_path = project_dir / args.config
+    config = load_config(config_path) if config_path.exists() else {}
+    
     # Load test data
     test_path = data_dir / args.test_data
     df_test = load_data(test_path)
@@ -70,6 +109,15 @@ def main():
     # Remove label column if it exists (test set has dummy labels)
     if 'label' in df_test.columns:
         df_test = df_test.drop(columns=['label'])
+    
+    # Apply feature selection if enabled in config
+    if config.get('feature_selection', {}).get('enabled', False):
+        top_n = config['feature_selection']['top_n_features']
+        importance_file = config['feature_selection']['importance_file']
+        feature_importance_path = project_dir / importance_file
+        print(f"\nFeature selection enabled: Using top {top_n} features")
+        top_features = load_top_features(feature_importance_path, top_n)
+        df_test = filter_test_features(df_test, top_features)
     
     # Determine model type
     model_type = 'lightgbm' if model_path.suffix == '.txt' else 'sklearn'
