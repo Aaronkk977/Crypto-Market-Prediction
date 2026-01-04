@@ -44,6 +44,7 @@ model:
 training:
   num_boost_round: 2500
   early_stopping_rounds: 50
+  min_delta: 0.0005
 
 output:
   model_dir: 'artifacts/models'

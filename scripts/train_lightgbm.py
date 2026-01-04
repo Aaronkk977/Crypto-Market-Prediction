@@ -12,6 +12,7 @@ import yaml
 import argparse
 import numpy as np
 import json
+import time
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
@@ -124,7 +125,8 @@ def train_with_cv(df, config, project_dir):
             X_train, y_train, X_val, y_val,
             params=config['model'],
             num_boost_round=config['training']['num_boost_round'],
-            early_stopping_rounds=config['training']['early_stopping_rounds']
+            early_stopping_rounds=config['training']['early_stopping_rounds'],
+            min_delta=config['training']['min_delta']
         )
         
         # Extract metrics
@@ -150,9 +152,11 @@ def train_with_cv(df, config, project_dir):
     
     val_pearsons = [r['val_pearson'] for r in cv_results]
     val_rmses = [r['val_rmse'] for r in cv_results]
+    best_iterations = [r['best_iteration'] for r in cv_results]
     
     print(f"Validation Pearson: {np.mean(val_pearsons):.6f} ± {np.std(val_pearsons):.6f}")
     print(f"Validation RMSE:    {np.mean(val_rmses):.6f} ± {np.std(val_rmses):.6f}")
+    print(f"Best iterations:    {np.median(best_iterations):.0f} (median), {np.mean(best_iterations):.1f} (mean)")
     print(f"\nFold-by-fold results:")
     for r in cv_results:
         print(f"  Fold {r['fold']}: Pearson={r['val_pearson']:.6f}, RMSE={r['val_rmse']:.6f}, Iter={r['best_iteration']}")
@@ -165,24 +169,57 @@ def train_with_cv(df, config, project_dir):
         json.dump(cv_results, f, indent=2)
     print(f"\nCV results saved to {results_dir / 'cv_results.json'}")
     
-    # Save best model (highest validation Pearson)
-    best_fold_idx = np.argmax(val_pearsons)
-    best_model = models[best_fold_idx]
-    
+    # Save all fold models
     model_dir = project_dir / config['output']['model_dir']
     model_dir.mkdir(exist_ok=True, parents=True)
-    model_path = model_dir / config['output']['model_name']
     
-    print(f"\nSaving best model (Fold {best_fold_idx + 1}) to {model_path}...")
-    best_model.save_model(str(model_path))
-    
-    # Also save all models
     for idx, model in enumerate(models, 1):
         fold_model_path = model_dir / f"lightgbm_model_fold{idx}.txt"
         model.save_model(str(fold_model_path))
-    print(f"All {len(models)} fold models saved")
+    print(f"All {len(models)} fold models saved to {model_dir}")
     
-    return models, cv_results
+    # Train final model on full data using median best_iteration
+    print("\n" + "="*60)
+    print("TRAINING FINAL MODEL ON FULL DATA")
+    print("="*60)
+    
+    optimal_rounds = int(np.median(best_iterations))
+    print(f"Using {optimal_rounds} rounds (median of CV best iterations)")
+    
+    # Prepare full data
+    X_full = df.drop(columns=[config['data']['target_col']])
+    y_full = df[config['data']['target_col']]
+    
+    # Drop group column if exists
+    if cv_method == 'group_kfold':
+        group_col = config['split']['group_col']
+        if group_col in X_full.columns:
+            X_full = X_full.drop(columns=[group_col])
+    
+    print(f"Full data: {X_full.shape[0]} samples, {X_full.shape[1]} features")
+    
+    # Create dataset and train without validation (no early stopping)
+    train_data = lgb.Dataset(X_full, label=y_full)
+    
+    print(f"\nTraining final model for {optimal_rounds} iterations...")
+    start_time = time.time()
+    
+    final_model = lgb.train(
+        config['model'],
+        train_data,
+        num_boost_round=optimal_rounds,
+        callbacks=[lgb.log_evaluation(period=100)]
+    )
+    
+    training_time = time.time() - start_time
+    print(f"\nFinal model training completed in {training_time:.2f} seconds")
+    
+    # Save final model
+    final_model_path = model_dir / config['output']['model_name']
+    print(f"\nSaving final model to {final_model_path}...")
+    final_model.save_model(str(final_model_path))
+    
+    return final_model, cv_results
 
 def main():
     # Parse arguments

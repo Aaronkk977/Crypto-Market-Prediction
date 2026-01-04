@@ -245,7 +245,7 @@ def pearson_eval(y_pred, train_data):
     return 'pearson', pearson, True
 
 def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round=1000, 
-                   early_stopping_rounds=50):
+                   early_stopping_rounds=50, min_delta=0.0):
     """
     Train LightGBM model with early stopping based on Pearson correlation.
     
@@ -255,13 +255,16 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round
         params: LightGBM parameters dictionary
         num_boost_round: Maximum number of boosting iterations
         early_stopping_rounds: Stop if no improvement for this many rounds
+        min_delta: Minimum improvement required to consider as progress (default: 0.0)
         
     Returns:
-        Trained LightGBM model
+        Trained LightGBM model, metrics dict
     """
     
     print(f"\nTraining LightGBM...")
     print(f"Parameters: {params}")
+    if min_delta > 0:
+        print(f"Early stopping: {early_stopping_rounds} rounds, min_delta={min_delta}")
     start_time = time.time()
     
     # Create datasets
@@ -270,7 +273,7 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round
     
     # Train model with custom Pearson metric and callbacks
     callbacks = [
-        lgb.early_stopping(stopping_rounds=early_stopping_rounds),
+        lgb.early_stopping(stopping_rounds=early_stopping_rounds, min_delta=min_delta),
         lgb.log_evaluation(period=100)
     ]
     

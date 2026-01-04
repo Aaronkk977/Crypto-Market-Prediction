@@ -2,7 +2,7 @@
 
 # Data settings
 data:
-  train_path: "data/train_fe_filtered.parquet"  # Will auto-switch to train_fe_filtered_grouped.parquet if cv_method is group_kfold
+  train_path: "data/train_fe_filtered_grouped.parquet"  # Will auto-switch to train_fe_filtered_grouped.parquet if cv_method is group_kfold
   test_path: "data/test_fe_filtered.parquet"
   target_col: "label"
 

@@ -284,7 +284,10 @@ Evaluate feature contribution with different feature subsets:
 - Engineered features continue to provide marginal but consistent signal
 - Results saved to: `results/importance/permutation_importance.csv`
 
+### LightGBM
 
+Private score: 0.05462
+Public score: 0.04803
 
 ## License
 
