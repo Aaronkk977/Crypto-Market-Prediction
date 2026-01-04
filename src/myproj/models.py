@@ -8,11 +8,9 @@ from sklearn.preprocessing import StandardScaler
 import time
 from typing import Tuple, Optional, Dict
 
-try:
-    import lightgbm as lgb
-    HAS_LIGHTGBM = True
-except ImportError:
-    HAS_LIGHTGBM = False
+import lightgbm as lgb
+
+
 
 def train_ridge_model(X_train, y_train, alpha=1.0, **kwargs):
     """
@@ -218,10 +216,38 @@ def evaluate_model(model, X_train, y_train, X_val, y_val, metrics_module=None):
         'val_predictions': y_val_pred
     }
 
+def pearson_eval(y_pred, train_data):
+    """
+    Custom Pearson correlation evaluation metric for LightGBM.
+    
+    Args:
+        y_pred: Predicted values
+        train_data: LightGBM Dataset object
+        
+    Returns:
+        Tuple of (metric_name, metric_value, is_higher_better)
+    """
+    y_true = train_data.get_label()
+    
+    # Calculate Pearson correlation
+    mean_true = np.mean(y_true)
+    mean_pred = np.mean(y_pred)
+    
+    numerator = np.sum((y_true - mean_true) * (y_pred - mean_pred))
+    denominator = np.sqrt(np.sum((y_true - mean_true)**2) * np.sum((y_pred - mean_pred)**2))
+    
+    if denominator == 0:
+        pearson = 0.0
+    else:
+        pearson = numerator / denominator
+    
+    # Return: (metric_name, metric_value, is_higher_better)
+    return 'pearson', pearson, True
+
 def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round=1000, 
                    early_stopping_rounds=50):
     """
-    Train LightGBM model with early stopping.
+    Train LightGBM model with early stopping based on Pearson correlation.
     
     Args:
         X_train, y_train: Training data
@@ -233,8 +259,6 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round
     Returns:
         Trained LightGBM model
     """
-    if not HAS_LIGHTGBM:
-        raise ImportError("LightGBM is not installed. Install with: pip install lightgbm")
     
     print(f"\nTraining LightGBM...")
     print(f"Parameters: {params}")
@@ -244,7 +268,7 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round
     train_data = lgb.Dataset(X_train, label=y_train)
     val_data = lgb.Dataset(X_val, label=y_val, reference=train_data)
     
-    # Train model with callbacks
+    # Train model with custom Pearson metric and callbacks
     callbacks = [
         lgb.early_stopping(stopping_rounds=early_stopping_rounds),
         lgb.log_evaluation(period=100)
@@ -256,6 +280,7 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round
         num_boost_round=num_boost_round,
         valid_sets=[train_data, val_data],
         valid_names=['train', 'valid'],
+        feval=pearson_eval,
         callbacks=callbacks
     )
     
@@ -264,4 +289,21 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round
     print(f"Best iteration: {model.best_iteration}")
     print(f"Best score: {model.best_score}")
     
-    return model
+    # Calculate metrics once and return them
+    y_train_pred = model.predict(X_train, num_iteration=model.best_iteration)
+    y_val_pred = model.predict(X_val, num_iteration=model.best_iteration)
+    
+    train_rmse = np.sqrt(np.mean((y_train - y_train_pred)**2))
+    train_mae = np.mean(np.abs(y_train - y_train_pred))
+    train_pearson = np.corrcoef(y_train, y_train_pred)[0, 1]
+    
+    val_rmse = np.sqrt(np.mean((y_val - y_val_pred)**2))
+    val_mae = np.mean(np.abs(y_val - y_val_pred))
+    val_pearson = np.corrcoef(y_val, y_val_pred)[0, 1]
+    
+    metrics = {
+        'train': {'pearson': train_pearson, 'rmse': train_rmse, 'mae': train_mae},
+        'val': {'pearson': val_pearson, 'rmse': val_rmse, 'mae': val_mae}
+    }
+    
+    return model, metrics

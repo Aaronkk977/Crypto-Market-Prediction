@@ -19,13 +19,8 @@ from myproj.data import load_data
 from myproj.split import split_data
 from myproj.models import train_lightgbm
 from myproj.metrics import calculate_metrics
+import lightgbm as lgb
 
-try:
-    import lightgbm as lgb
-except ImportError:
-    print("Error: LightGBM is not installed.")
-    print("Install with: pip install lightgbm")
-    sys.exit(1)
 
 def save_results(results_list, output_dir):
     """Save experiment results."""

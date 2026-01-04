@@ -2,8 +2,8 @@
 
 # Data settings
 data:
-  train_path: "data/train_fe.parquet"  # Will auto-switch to train_fe_grouped.parquet if cv_method is group_kfold
-  test_path: "data/test_fe.parquet"
+  train_path: "data/train_fe_filtered_grouped.parquet"  # Will auto-switch to train_fe_grouped.parquet if cv_method is group_kfold
+  test_path: "data/test_fe_filtered.parquet"
   target_col: "label"
 
 # Split settings
@@ -25,7 +25,7 @@ split:
 # Model settings
 model:
   objective: 'regression'
-  metric: 'rmse'
+  metric: 'pearson'
   boosting_type: 'gbdt'
   num_leaves: 31
   learning_rate: 0.05
@@ -42,7 +42,7 @@ model:
 
 # Training settings
 training:
-  num_boost_round: 1000
+  num_boost_round: 2500
   early_stopping_rounds: 50
 
 output:
