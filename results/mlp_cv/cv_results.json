@@ -1,85 +1,85 @@
 [
   {
     "fold": 1,
-    "avg_val_pearson": 0.08711295277805144,
+    "avg_val_pearson": 0.08331049109673398,
     "per_seed": [
       {
         "seed": 42,
-        "val_pearson": 0.08925355528804547,
+        "val_pearson": 0.08430752136761449,
         "best_epoch": 1
       },
       {
         "seed": 123,
-        "val_pearson": 0.08758290727820987,
-        "best_epoch": 1
+        "val_pearson": 0.09167541550640897,
+        "best_epoch": 2
       },
       {
         "seed": 456,
-        "val_pearson": 0.08450239576789899,
+        "val_pearson": 0.07394853641617849,
         "best_epoch": 1
       }
     ]
   },
   {
     "fold": 2,
-    "avg_val_pearson": 0.14823746266858848,
+    "avg_val_pearson": 0.15211607079160197,
     "per_seed": [
       {
         "seed": 42,
-        "val_pearson": 0.15362375652685825,
-        "best_epoch": 12
+        "val_pearson": 0.15752066613966542,
+        "best_epoch": 2
       },
       {
         "seed": 123,
-        "val_pearson": 0.14554788018734957,
+        "val_pearson": 0.14428381393368825,
         "best_epoch": 1
       },
       {
         "seed": 456,
-        "val_pearson": 0.1455407512915576,
-        "best_epoch": 7
+        "val_pearson": 0.15454373230145219,
+        "best_epoch": 8
       }
     ]
   },
   {
     "fold": 3,
-    "avg_val_pearson": 0.0763868986265419,
+    "avg_val_pearson": 0.08807319505035514,
     "per_seed": [
       {
         "seed": 42,
-        "val_pearson": 0.0863697145532334,
-        "best_epoch": 14
+        "val_pearson": 0.0882644426150869,
+        "best_epoch": 4
       },
       {
         "seed": 123,
-        "val_pearson": 0.07247309689805133,
-        "best_epoch": 3
+        "val_pearson": 0.10898665359070671,
+        "best_epoch": 17
       },
       {
         "seed": 456,
-        "val_pearson": 0.07031788442834094,
-        "best_epoch": 16
+        "val_pearson": 0.0669684889452718,
+        "best_epoch": 3
       }
     ]
   },
   {
     "fold": 4,
-    "avg_val_pearson": 0.07360075588172177,
+    "avg_val_pearson": 0.07428716616540701,
     "per_seed": [
       {
         "seed": 42,
-        "val_pearson": 0.07160557408771251,
-        "best_epoch": 27
+        "val_pearson": 0.06656526456400595,
+        "best_epoch": 16
       },
       {
         "seed": 123,
-        "val_pearson": 0.08493492968195039,
+        "val_pearson": 0.08465428890976932,
         "best_epoch": 1
       },
       {
         "seed": 456,
-        "val_pearson": 0.06426176387550243,
-        "best_epoch": 2
+        "val_pearson": 0.07164194502244575,
+        "best_epoch": 7
       }
     ]
   }

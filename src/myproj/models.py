@@ -469,6 +469,7 @@ def train_mlp(X_train, y_train, X_val, y_val,
     Train a 3-layer MLP regressor with multiple random seeds.
 
     Architecture: Input → 256 → BN → ReLU → Drop → 128 → BN → ReLU → Drop → 64 → BN → ReLU → Drop → 1
+    Loss: 0.6*MSE + 0.4*(1-Pearson)  |  Val metric: Pearson correlation
 
     Args:
         X_train, y_train: Training data (numpy / pandas).
@@ -529,6 +530,7 @@ def train_mlp(X_train, y_train, X_val, y_val,
     print(f"Device: {device}")
     print(f"Architecture: {input_dim} → {hidden1} → {hidden2} → {hidden3} → 1")
     print(f"Seeds: {seeds} | Epochs: {epochs} | BS: {batch_size} | LR: {lr}")
+    print(f"Loss: 0.6*MSE + 0.4*(1-Pearson) | Val metric: Pearson")
 
     results = []
     for seed in seeds:
@@ -537,8 +539,18 @@ def train_mlp(X_train, y_train, X_val, y_val,
         np.random.seed(seed)
 
         model = NetClass(input_dim, hidden1, hidden2, hidden3, dropout).to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
-        criterion = nn.MSELoss()
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+        mse_criterion = nn.MSELoss()
+
+        def pearson_loss(pred, target):
+            """Differentiable 1 - Pearson correlation."""
+            vx = pred - pred.mean()
+            vy = target - target.mean()
+            corr = (vx * vy).sum() / (
+                torch.sqrt((vx ** 2).sum()) * torch.sqrt((vy ** 2).sum()) + 1e-8
+            )
+            return 1.0 - corr
+
         loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
                             generator=torch.Generator(device='cpu').manual_seed(seed))
 
@@ -553,7 +565,8 @@ def train_mlp(X_train, y_train, X_val, y_val,
             model.train()
             for xb, yb in loader:
                 optimizer.zero_grad()
-                loss = criterion(model(xb), yb)
+                pred = model(xb)
+                loss = 0.6 * mse_criterion(pred, yb) + 0.4 * pearson_loss(pred, yb)
                 loss.backward()
                 optimizer.step()
 

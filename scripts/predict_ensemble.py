@@ -6,8 +6,8 @@ Trains XGBoost and MLP on the FULL training set, then predicts on test data.
 
 Usage:
     python scripts/predict_ensemble.py
-    python scripts/predict_ensemble.py --alpha 0.4
-    python scripts/predict_ensemble.py --alpha 0.4 --output submission.csv
+    python scripts/predict_ensemble.py --alpha 0.1
+    python scripts/predict_ensemble.py --alpha 0.1 --output submission.csv
 """
 
 import sys
@@ -41,8 +41,8 @@ def load_selected_features(filepath):
 
 def main():
     parser = argparse.ArgumentParser(description='Ensemble prediction (XGB + MLP)')
-    parser.add_argument('--alpha', type=float, default=0.4,
-                        help='Blending weight: α*XGB + (1-α)*MLP (default: 0.4)')
+    parser.add_argument('--alpha', type=float, default=0.1,
+                        help='Blending weight: α*XGB + (1-α)*MLP (default: 0.1)')
     parser.add_argument('--output', type=str, default='submission_ensemble.csv',
                         help='Output filename (default: submission_ensemble.csv)')
     parser.add_argument('--test-data', type=str, default='test.parquet',
@@ -67,7 +67,7 @@ def main():
 
     # ── Load training data ──
     print("\nLoading training data...")
-    df_train = load_data(data_dir / 'train.parquet')
+    df_train = load_data(data_dir / 'train_shap_filtered.parquet')
     target_col = 'label'
 
     # Features: use SHAP-selected features if configured

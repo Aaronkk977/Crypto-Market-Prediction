@@ -312,16 +312,10 @@ Average,-,0.2876945746169185,0.5399328498134252,-1.167449112279042,0.06515924097
 
 
 # Step 2: Feature selection + experiment
-python scripts/feature_selection.py --top_n 100 --shap_top 50
+python scripts/feature_selection.py --corr_threshold 1e-4 --shap_top 20
 python scripts/run_feature_experiment.py
 
-======================================================================
-COMPARISON
-======================================================================
-                  Experiment  N Features  Val Pearson    ± std  Val RMSE
-             A: All Features         785     0.049888 0.031057  1.894825
-B: Pearson Top-100 Anonymous         100     0.097224 0.031461  1.114352
-    C: SHAP-Refined Features          50     0.102169 0.025382  1.086213
+
 
 # Step 3: Model training
 python scripts/train_xgb.py
@@ -345,15 +339,15 @@ Results saved to /tmp2/b12902115/Crypto Market Prediction/results/xgb_cv/cv_resu
 ============================================================
 WALK-FORWARD CV SUMMARY (MLP)
 ============================================================
-  Fold 1: Val Pearson=0.087113
-  Fold 2: Val Pearson=0.148237
-  Fold 3: Val Pearson=0.076387
-  Fold 4: Val Pearson=0.073601
+  Fold 1: Val Pearson=0.083310
+  Fold 2: Val Pearson=0.152116
+  Fold 3: Val Pearson=0.088073
+  Fold 4: Val Pearson=0.074287
 
-  Overall: Val Pearson=0.096335 ± 0.030388
+  Overall: Val Pearson=0.099447 ± 0.030809
 
 Results saved to /tmp2/b12902115/Crypto Market Prediction/results/mlp_cv/cv_results.json
-📝 Logged experiment 'MLP (walk-forward)' (Val Pearson=0.077232) → final_comparison.csv
+📝 Logged experiment 'MLP (walk-forward)' (Val Pearson=0.099447) → final_comparison.csv
 
 # Step 4: Ensemble blending
 python scripts/ensemble_blend.py
