@@ -298,6 +298,100 @@ N Features   Val Pearson          Val RMSE             Best Iter
 Private score: 0.05044
 Score: 0.04909
 
+conda activate crypto
+
+# Step 1: Baseline
+python scripts/train_ridge.py
+
+Fold,Best Alpha,Train R²,Train Pearson,Val R²,Val Pearson
+1,1000.0,0.27022784533868704,0.5228711588871038,-0.25044807254698265,0.10356015242471286
+2,1000.0,0.2882194747237702,0.5403369009926925,-0.391749497861841,0.09971979952011682
+3,1000.0,0.29579580935529914,0.5479421572404082,-1.5189631260773395,0.03432741926898358
+4,1000.0,0.2965351690499175,0.5485811821334964,-2.5086357526300045,0.023029592696204842
+Average,-,0.2876945746169185,0.5399328498134252,-1.167449112279042,0.06515924097750453
+
+
+# Step 2: Feature selection + experiment
+python scripts/feature_selection.py --top_n 100 --shap_top 50
+python scripts/run_feature_experiment.py
+
+======================================================================
+COMPARISON
+======================================================================
+                  Experiment  N Features  Val Pearson    ± std  Val RMSE
+             A: All Features         785     0.049888 0.031057  1.894825
+B: Pearson Top-100 Anonymous         100     0.097224 0.031461  1.114352
+    C: SHAP-Refined Features          50     0.102169 0.025382  1.086213
+
+# Step 3: Model training
+python scripts/train_xgb.py
+python scripts/train_mlp.py
+
+============================================================
+WALK-FORWARD CV SUMMARY (XGBoost)
+============================================================
+  Fold 1: Val Pearson=0.050057
+  Fold 2: Val Pearson=0.048018
+  Fold 3: Val Pearson=0.067539
+  Fold 4: Val Pearson=0.031953
+
+  Overall: Val Pearson=0.049392 ± 0.012607
+  
+Results saved to /tmp2/b12902115/Crypto Market Prediction/results/xgb_cv/cv_results.json
+📝 Logged experiment 'XGBoost (walk-forward)' (Val Pearson=0.056747) → final_comparison.csv
+
+✓ Avg Val Pearson across 3 seeds: 0.060930
+
+============================================================
+WALK-FORWARD CV SUMMARY (MLP)
+============================================================
+  Fold 1: Val Pearson=0.087113
+  Fold 2: Val Pearson=0.148237
+  Fold 3: Val Pearson=0.076387
+  Fold 4: Val Pearson=0.073601
+
+  Overall: Val Pearson=0.096335 ± 0.030388
+
+Results saved to /tmp2/b12902115/Crypto Market Prediction/results/mlp_cv/cv_results.json
+📝 Logged experiment 'MLP (walk-forward)' (Val Pearson=0.077232) → final_comparison.csv
+
+# Step 4: Ensemble blending
+python scripts/ensemble_blend.py
+
+────────────────────────────────────────────────────────────
+Individual Model Performance (per fold)
+────────────────────────────────────────────────────────────
+  Fold 1: XGB Pearson=0.051526, MLP Pearson=0.091311
+  Fold 2: XGB Pearson=0.049730, MLP Pearson=0.162778
+  Fold 3: XGB Pearson=0.070033, MLP Pearson=0.082427
+  Fold 4: XGB Pearson=0.033859, MLP Pearson=0.082462
+
+────────────────────────────────────────────────────────────
+Grid Search: α * XGB + (1-α) * MLP
+────────────────────────────────────────────────────────────
+  α=0.0  →  Avg Pearson=0.104744 ± 0.033701
+  α=0.1  →  Avg Pearson=0.105524 ± 0.032056
+  α=0.2  →  Avg Pearson=0.104529 ± 0.028933
+  α=0.3  →  Avg Pearson=0.101550 ± 0.024612
+  α=0.4  →  Avg Pearson=0.096674 ± 0.019806
+  α=0.5  →  Avg Pearson=0.090239 ± 0.015421
+  α=0.6  →  Avg Pearson=0.082726 ± 0.012277
+  α=0.7  →  Avg Pearson=0.074655 ± 0.010832
+  α=0.8  →  Avg Pearson=0.066502 ± 0.010877
+  α=0.9  →  Avg Pearson=0.058634 ± 0.011729
+  α=1.0  →  Avg Pearson=0.051287 ± 0.012822
+
+============================================================
+BEST: α=0.1  →  Avg Val Pearson=0.105524
+  (α=1.0 means pure XGB, α=0.0 means pure MLP)
+============================================================
+
+Results saved to /tmp2/b12902115/Crypto Market Prediction/results/ensemble/blend_search.csv
+📝 Logged experiment 'Ensemble (α=0.1)' (Val Pearson=0.105524) → final_comparison.csv
+
+# Step 5: View leaderboard
+python scripts/experiment_tracker.py --leaderboard
+
 
 ## License
 

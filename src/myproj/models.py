@@ -310,3 +310,307 @@ def train_lightgbm(X_train, y_train, X_val, y_val, params: Dict, num_boost_round
     }
     
     return model, metrics
+
+
+# ---------------------------------------------------------------------------
+#  XGBoost
+# ---------------------------------------------------------------------------
+
+def train_xgboost(X_train, y_train, X_val, y_val,
+                  params: Optional[Dict] = None,
+                  seeds: list = None,
+                  num_boost_round: int = 2000,
+                  early_stopping_rounds: int = 50):
+    """
+    Train XGBoost regressors with multiple random seeds for ensemble.
+
+    Args:
+        X_train, y_train: Training data.
+        X_val, y_val: Validation data.
+        params: XGBoost parameters (sensible defaults provided).
+        seeds: List of random seeds (default: [42, 123, 456]).
+        num_boost_round: Max boosting rounds (default: 2000).
+        early_stopping_rounds: Early-stop patience (default: 50).
+
+    Returns:
+        list[dict]: One entry per seed with keys
+            'seed', 'model', 'best_iteration', 'metrics'.
+    """
+    import xgboost as xgb
+
+    if seeds is None:
+        seeds = [42, 123, 456]
+
+    default_params = {
+        'objective': 'reg:squarederror',
+        'tree_method': 'hist',
+        'learning_rate': 0.05,
+        'max_depth': 6,
+        'subsample': 0.8,
+        'colsample_bytree': 0.8,
+        'reg_alpha': 0.0,
+        'reg_lambda': 1.0,
+        'n_jobs': -1,
+        'verbosity': 0,
+    }
+    if params:
+        default_params.update(params)
+
+    print(f"\n{'='*60}")
+    print("XGBOOST MULTI-SEED TRAINING")
+    print(f"{'='*60}")
+    print(f"Seeds: {seeds}")
+    print(f"Params: {default_params}")
+
+    results = []
+    for seed in seeds:
+        print(f"\n--- Seed {seed} ---")
+        default_params['seed'] = seed
+        start_time = time.time()
+
+        dtrain = xgb.DMatrix(X_train, label=y_train)
+        dval = xgb.DMatrix(X_val, label=y_val)
+
+        # Custom Pearson eval metric for early stopping
+        def pearson_eval(predt, dtrain_inner):
+            labels = dtrain_inner.get_label()
+            corr = float(np.corrcoef(labels, predt)[0, 1])
+            return 'pearson', corr
+
+        model = xgb.train(
+            default_params,
+            dtrain,
+            num_boost_round=num_boost_round,
+            evals=[(dtrain, 'train'), (dval, 'valid')],
+            custom_metric=pearson_eval,
+            early_stopping_rounds=early_stopping_rounds,
+            maximize=True,
+            verbose_eval=100,
+        )
+
+        best_iter = model.best_iteration
+        y_train_pred = model.predict(dtrain, iteration_range=(0, best_iter + 1))
+        y_val_pred = model.predict(dval, iteration_range=(0, best_iter + 1))
+
+        train_pearson = float(np.corrcoef(y_train, y_train_pred)[0, 1])
+        val_pearson = float(np.corrcoef(y_val, y_val_pred)[0, 1])
+
+        elapsed = time.time() - start_time
+        print(f"  Best iter: {best_iter} | "
+              f"Train Pearson: {train_pearson:.6f} | "
+              f"Val Pearson: {val_pearson:.6f} | "
+              f"Time: {elapsed:.1f}s")
+
+        results.append({
+            'seed': seed,
+            'model': model,
+            'best_iteration': best_iter,
+            'y_val_pred': y_val_pred,
+            'metrics': {
+                'train': {'pearson': train_pearson},
+                'val': {'pearson': val_pearson},
+            }
+        })
+
+    # Summary
+    avg_val = np.mean([r['metrics']['val']['pearson'] for r in results])
+    print(f"\n✓ Avg Val Pearson across {len(seeds)} seeds: {avg_val:.6f}")
+    return results
+
+
+# ---------------------------------------------------------------------------
+#  MLP (PyTorch)
+# ---------------------------------------------------------------------------
+
+class _MLP_Net:
+    """Lightweight wrapper so the module can be imported without torch installed."""
+    _net_class = None
+
+    @classmethod
+    def get_class(cls):
+        if cls._net_class is None:
+            import torch
+            import torch.nn as nn
+
+            class Net(nn.Module):
+                def __init__(self, input_dim, hidden1=256, hidden2=128, hidden3=64, dropout=0.3):
+                    super().__init__()
+                    self.net = nn.Sequential(
+                        nn.Linear(input_dim, hidden1),
+                        nn.BatchNorm1d(hidden1),
+                        nn.ReLU(),
+                        nn.Dropout(dropout),
+                        nn.Linear(hidden1, hidden2),
+                        nn.BatchNorm1d(hidden2),
+                        nn.ReLU(),
+                        nn.Dropout(dropout),
+                        nn.Linear(hidden2, hidden3),
+                        nn.BatchNorm1d(hidden3),
+                        nn.ReLU(),
+                        nn.Dropout(dropout),
+                        nn.Linear(hidden3, 1),
+                    )
+
+                def forward(self, x):
+                    return self.net(x).squeeze(-1)
+
+            cls._net_class = Net
+        return cls._net_class
+
+
+def train_mlp(X_train, y_train, X_val, y_val,
+              seeds: list = None,
+              hidden1: int = 256, hidden2: int = 128, hidden3: int = 64,
+              dropout: float = 0.3,
+              lr: float = 1e-3, weight_decay: float = 1e-5,
+              epochs: int = 100, batch_size: int = 1024,
+              patience: int = 10):
+    """
+    Train a 3-layer MLP regressor with multiple random seeds.
+
+    Architecture: Input → 256 → BN → ReLU → Drop → 128 → BN → ReLU → Drop → 64 → BN → ReLU → Drop → 1
+
+    Args:
+        X_train, y_train: Training data (numpy / pandas).
+        X_val, y_val: Validation data.
+        seeds: Random seeds (default: [42, 123, 456]).
+        hidden1, hidden2, hidden3: Hidden layer sizes.
+        dropout: Dropout probability.
+        lr: Learning rate for Adam.
+        weight_decay: L2 penalty for Adam.
+        epochs: Maximum training epochs.
+        batch_size: Mini-batch size.
+        patience: Early-stop patience (epochs without val improvement).
+
+    Returns:
+        list[dict]: One per seed with keys
+            'seed', 'state_dict', 'input_dim', 'hidden1', 'hidden2',
+            'hidden3', 'dropout', 'best_epoch', 'metrics'.
+    """
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import TensorDataset, DataLoader
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if seeds is None:
+        seeds = [42, 123, 456]
+
+    # Convert to tensors
+    if hasattr(X_train, 'values'):
+        X_train_np = X_train.values.astype(np.float32)
+    else:
+        X_train_np = np.asarray(X_train, dtype=np.float32)
+    if hasattr(y_train, 'values'):
+        y_train_np = y_train.values.astype(np.float32)
+    else:
+        y_train_np = np.asarray(y_train, dtype=np.float32)
+    if hasattr(X_val, 'values'):
+        X_val_np = X_val.values.astype(np.float32)
+    else:
+        X_val_np = np.asarray(X_val, dtype=np.float32)
+    if hasattr(y_val, 'values'):
+        y_val_np = y_val.values.astype(np.float32)
+    else:
+        y_val_np = np.asarray(y_val, dtype=np.float32)
+
+    X_t = torch.from_numpy(X_train_np).to(device)
+    y_t = torch.from_numpy(y_train_np).to(device)
+    X_v = torch.from_numpy(X_val_np).to(device)
+    y_v = torch.from_numpy(y_val_np).to(device)
+
+    train_ds = TensorDataset(X_t, y_t)
+    input_dim = X_t.shape[1]
+
+    NetClass = _MLP_Net.get_class()
+
+    print(f"\n{'='*60}")
+    print("MLP MULTI-SEED TRAINING")
+    print(f"{'='*60}")
+    print(f"Device: {device}")
+    print(f"Architecture: {input_dim} → {hidden1} → {hidden2} → {hidden3} → 1")
+    print(f"Seeds: {seeds} | Epochs: {epochs} | BS: {batch_size} | LR: {lr}")
+
+    results = []
+    for seed in seeds:
+        print(f"\n--- Seed {seed} ---")
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+
+        model = NetClass(input_dim, hidden1, hidden2, hidden3, dropout).to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        criterion = nn.MSELoss()
+        loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,
+                            generator=torch.Generator(device='cpu').manual_seed(seed))
+
+        best_val_pearson = -float('inf')
+        best_state = None
+        best_epoch = 0
+        wait = 0
+
+        start_time = time.time()
+        for epoch in range(1, epochs + 1):
+            # --- train ---
+            model.train()
+            for xb, yb in loader:
+                optimizer.zero_grad()
+                loss = criterion(model(xb), yb)
+                loss.backward()
+                optimizer.step()
+
+            # --- validate ---
+            model.eval()
+            with torch.no_grad():
+                val_pred = model(X_v).cpu().numpy()
+            val_pearson = float(np.corrcoef(y_val_np, val_pred)[0, 1])
+
+            if val_pearson > best_val_pearson:
+                best_val_pearson = val_pearson
+                best_state = {k: v.cpu().clone() for k, v in model.state_dict().items()}
+                best_epoch = epoch
+                wait = 0
+            else:
+                wait += 1
+
+            if epoch % 20 == 0 or epoch == 1:
+                print(f"  Epoch {epoch:3d} | Val Pearson: {val_pearson:.6f} "
+                      f"(best: {best_val_pearson:.6f} @ ep {best_epoch})")
+
+            if wait >= patience:
+                print(f"  Early stop at epoch {epoch}")
+                break
+
+        # Final metrics with best model
+        model.load_state_dict(best_state)
+        model.eval()
+        with torch.no_grad():
+            train_pred = model(X_t).cpu().numpy()
+            val_pred = model(X_v).cpu().numpy()
+        train_pearson = float(np.corrcoef(y_train_np, train_pred)[0, 1])
+        val_pearson_final = float(np.corrcoef(y_val_np, val_pred.ravel())[0, 1])
+
+        elapsed = time.time() - start_time
+        print(f"  Best epoch: {best_epoch} | "
+              f"Train Pearson: {train_pearson:.6f} | "
+              f"Val Pearson: {best_val_pearson:.6f} | "
+              f"Time: {elapsed:.1f}s")
+
+        results.append({
+            'seed': seed,
+            'state_dict': best_state,
+            'input_dim': input_dim,
+            'hidden1': hidden1,
+            'hidden2': hidden2,
+            'hidden3': hidden3,
+            'dropout': dropout,
+            'best_epoch': best_epoch,
+            'y_val_pred': val_pred.ravel(),
+            'metrics': {
+                'train': {'pearson': train_pearson},
+                'val': {'pearson': best_val_pearson},
+            }
+        })
+
+    avg_val = np.mean([r['metrics']['val']['pearson'] for r in results])
+    print(f"\n✓ Avg Val Pearson across {len(seeds)} seeds: {avg_val:.6f}")
+    return results
+

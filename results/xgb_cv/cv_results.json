@@ -1,0 +1,86 @@
+[
+  {
+    "fold": 1,
+    "avg_val_pearson": 0.05005731964582414,
+    "per_seed": [
+      {
+        "seed": 42,
+        "val_pearson": 0.05310367228061766,
+        "best_iteration": 68
+      },
+      {
+        "seed": 123,
+        "val_pearson": 0.032384520138560725,
+        "best_iteration": 175
+      },
+      {
+        "seed": 456,
+        "val_pearson": 0.06468376651829404,
+        "best_iteration": 59
+      }
+    ]
+  },
+  {
+    "fold": 2,
+    "avg_val_pearson": 0.04801760725228273,
+    "per_seed": [
+      {
+        "seed": 42,
+        "val_pearson": 0.050114844527366115,
+        "best_iteration": 307
+      },
+      {
+        "seed": 123,
+        "val_pearson": 0.0568765492658472,
+        "best_iteration": 263
+      },
+      {
+        "seed": 456,
+        "val_pearson": 0.03706142796363488,
+        "best_iteration": 178
+      }
+    ]
+  },
+  {
+    "fold": 3,
+    "avg_val_pearson": 0.06753939616266284,
+    "per_seed": [
+      {
+        "seed": 42,
+        "val_pearson": 0.07275703816547399,
+        "best_iteration": 140
+      },
+      {
+        "seed": 123,
+        "val_pearson": 0.06784372766595727,
+        "best_iteration": 136
+      },
+      {
+        "seed": 456,
+        "val_pearson": 0.06201742265655726,
+        "best_iteration": 120
+      }
+    ]
+  },
+  {
+    "fold": 4,
+    "avg_val_pearson": 0.03195288489138651,
+    "per_seed": [
+      {
+        "seed": 42,
+        "val_pearson": 0.030751974179512358,
+        "best_iteration": 217
+      },
+      {
+        "seed": 123,
+        "val_pearson": 0.030822733279842456,
+        "best_iteration": 113
+      },
+      {
+        "seed": 456,
+        "val_pearson": 0.03428394721480472,
+        "best_iteration": 105
+      }
+    ]
+  }
+]

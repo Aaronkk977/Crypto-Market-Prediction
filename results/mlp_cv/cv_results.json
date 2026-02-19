@@ -1,0 +1,86 @@
+[
+  {
+    "fold": 1,
+    "avg_val_pearson": 0.08711295277805144,
+    "per_seed": [
+      {
+        "seed": 42,
+        "val_pearson": 0.08925355528804547,
+        "best_epoch": 1
+      },
+      {
+        "seed": 123,
+        "val_pearson": 0.08758290727820987,
+        "best_epoch": 1
+      },
+      {
+        "seed": 456,
+        "val_pearson": 0.08450239576789899,
+        "best_epoch": 1
+      }
+    ]
+  },
+  {
+    "fold": 2,
+    "avg_val_pearson": 0.14823746266858848,
+    "per_seed": [
+      {
+        "seed": 42,
+        "val_pearson": 0.15362375652685825,
+        "best_epoch": 12
+      },
+      {
+        "seed": 123,
+        "val_pearson": 0.14554788018734957,
+        "best_epoch": 1
+      },
+      {
+        "seed": 456,
+        "val_pearson": 0.1455407512915576,
+        "best_epoch": 7
+      }
+    ]
+  },
+  {
+    "fold": 3,
+    "avg_val_pearson": 0.0763868986265419,
+    "per_seed": [
+      {
+        "seed": 42,
+        "val_pearson": 0.0863697145532334,
+        "best_epoch": 14
+      },
+      {
+        "seed": 123,
+        "val_pearson": 0.07247309689805133,
+        "best_epoch": 3
+      },
+      {
+        "seed": 456,
+        "val_pearson": 0.07031788442834094,
+        "best_epoch": 16
+      }
+    ]
+  },
+  {
+    "fold": 4,
+    "avg_val_pearson": 0.07360075588172177,
+    "per_seed": [
+      {
+        "seed": 42,
+        "val_pearson": 0.07160557408771251,
+        "best_epoch": 27
+      },
+      {
+        "seed": 123,
+        "val_pearson": 0.08493492968195039,
+        "best_epoch": 1
+      },
+      {
+        "seed": 456,
+        "val_pearson": 0.06426176387550243,
+        "best_epoch": 2
+      }
+    ]
+  }
+]

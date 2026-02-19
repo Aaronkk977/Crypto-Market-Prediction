@@ -34,29 +34,44 @@ def load_config(config_path):
         return yaml.safe_load(f)
 
 def train_with_cv(df, n_folds, config, project_dir, split_method=None):
-    """Train with Cross-Validation (KFold or GroupKFold)."""
+    """Train with Cross-Validation (KFold, GroupKFold, or Walk-Forward)."""
     # Determine split method from config or parameter
     if split_method is None:
         split_method = config['split'].get('cv_method', 'kfold')
     
-    method_name = "GroupKFold" if split_method == 'group_kfold' else "K-Fold"
+    method_names = {
+        'group_kfold': 'GroupKFold',
+        'walk_forward': 'Walk-Forward',
+        'kfold': 'K-Fold',
+    }
+    method_name = method_names.get(split_method, 'K-Fold')
     print("\n" + "="*60)
-    print(f"RIDGE REGRESSION WITH {n_folds}-FOLD {method_name.upper()} CV")
+    if split_method == 'walk_forward':
+        print(f"RIDGE REGRESSION WITH WALK-FORWARD CV")
+    else:
+        print(f"RIDGE REGRESSION WITH {n_folds}-FOLD {method_name.upper()} CV")
     print("="*60)
     
     if split_method == 'group_kfold':
         print("⚠️  Using GroupKFold to prevent temporal label leakage")
+    elif split_method == 'walk_forward':
+        print("⚠️  Using Walk-Forward CV to prevent temporal label leakage")
     
     # Prepare CV splits
     split_kwargs = {
         'df': df,
         'split_method': split_method,
-        'n_splits': n_folds,
         'target_col': config['data']['target_col']
     }
     
     # Add method-specific parameters
-    if split_method == 'group_kfold':
+    if split_method == 'walk_forward':
+        split_kwargs['date_col'] = config['split'].get('date_col', 'date_id')
+        split_kwargs['train_months'] = config['split'].get('train_months', 4)
+        split_kwargs['gap_months'] = config['split'].get('gap_months', 1)
+        split_kwargs['val_months'] = config['split'].get('val_months', 4)
+    elif split_method == 'group_kfold':
+        split_kwargs['n_splits'] = n_folds
         group_col = config['split'].get('group_col', 'time_group_id')
         split_kwargs['group_col'] = group_col
         
@@ -67,6 +82,7 @@ def train_with_cv(df, n_folds, config, project_dir, split_method=None):
                 f"Run: python scripts/add_time_groups.py"
             )
     else:
+        split_kwargs['n_splits'] = n_folds
         split_kwargs['random_state'] = config['split'].get('random_state', 42)
     
     fold_generator = split_data(**split_kwargs)
@@ -143,7 +159,8 @@ def train_with_cv(df, n_folds, config, project_dir, split_method=None):
     print(f"  Val MAE:       {np.mean(metrics_summary['val_mae']):.6f} ± {np.std(metrics_summary['val_mae']):.6f}")
     
     # Save results
-    cv_suffix = 'grouped_cv' if split_method == 'group_kfold' else 'cv'
+    cv_suffixes = {'group_kfold': 'grouped_cv', 'walk_forward': 'walkforward_cv'}
+    cv_suffix = cv_suffixes.get(split_method, 'cv')
     results_dir = project_dir / 'results' / f'ridge_{cv_suffix}'
     results_dir.mkdir(exist_ok=True, parents=True)
     

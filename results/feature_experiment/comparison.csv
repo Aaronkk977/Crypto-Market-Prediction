@@ -1,0 +1,4 @@
+Experiment,N Features,Val Pearson,± std,Val RMSE
+A: All Features,785,0.049888,0.031057,1.894825
+B: Pearson Top-100 Anonymous,100,0.097224,0.031461,1.114352
+C: SHAP-Refined Features,50,0.102169,0.025382,1.086213

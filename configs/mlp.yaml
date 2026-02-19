@@ -1,0 +1,38 @@
+# MLP Configuration
+
+# Data settings
+data:
+  train_path: "data/train_shap_filtered.parquet"
+  test_path: "data/test.parquet"
+  target_col: "label"
+
+# Split settings
+split:
+  use_cv: true
+  cv_method: "walk_forward"
+  date_col: "date_id"
+  train_months: 4
+  gap_months: 1
+  val_months: 4
+
+# Model settings
+model:
+  hidden1: 256
+  hidden2: 128
+  hidden3: 64
+  dropout: 0.3
+  lr: 0.001
+  weight_decay: 0.00001
+  epochs: 100
+  batch_size: 1024
+  patience: 10
+
+# Training settings
+training:
+  seeds: [42, 123, 456]
+  scale_features: true
+
+# Output settings
+output:
+  model_dir: "artifacts/models"
+  results_dir: "results/mlp_cv"

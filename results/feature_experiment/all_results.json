@@ -1,0 +1,101 @@
+[
+  {
+    "experiment": "A: All Features",
+    "n_features": 785,
+    "avg_val_pearson": 0.049888,
+    "std_val_pearson": 0.031057,
+    "avg_val_rmse": 1.894825,
+    "folds": [
+      {
+        "fold": 1,
+        "val_pearson": 0.07680577179996524,
+        "val_rmse": 1.316200000109553,
+        "best_alpha": 100.0
+      },
+      {
+        "fold": 2,
+        "val_pearson": 0.0835639094860785,
+        "val_rmse": 1.3317958613650553,
+        "best_alpha": 100.0
+      },
+      {
+        "fold": 3,
+        "val_pearson": 0.028637747580471627,
+        "val_rmse": 2.1871490171097525,
+        "best_alpha": 100.0
+      },
+      {
+        "fold": 4,
+        "val_pearson": 0.010544719673716261,
+        "val_rmse": 2.7441547564021547,
+        "best_alpha": 100.0
+      }
+    ]
+  },
+  {
+    "experiment": "B: Pearson Top-100 Anonymous",
+    "n_features": 100,
+    "avg_val_pearson": 0.097224,
+    "std_val_pearson": 0.031461,
+    "avg_val_rmse": 1.114352,
+    "folds": [
+      {
+        "fold": 1,
+        "val_pearson": 0.08848433805345081,
+        "val_rmse": 1.1022411489129271,
+        "best_alpha": 0.01
+      },
+      {
+        "fold": 2,
+        "val_pearson": 0.15017200604310985,
+        "val_rmse": 1.026502628520615,
+        "best_alpha": 100.0
+      },
+      {
+        "fold": 3,
+        "val_pearson": 0.08226339639118688,
+        "val_rmse": 1.1218429220717614,
+        "best_alpha": 100.0
+      },
+      {
+        "fold": 4,
+        "val_pearson": 0.06797455867739542,
+        "val_rmse": 1.206819694875605,
+        "best_alpha": 100.0
+      }
+    ]
+  },
+  {
+    "experiment": "C: SHAP-Refined Features",
+    "n_features": 50,
+    "avg_val_pearson": 0.102169,
+    "std_val_pearson": 0.025382,
+    "avg_val_rmse": 1.086213,
+    "folds": [
+      {
+        "fold": 1,
+        "val_pearson": 0.09029996811295007,
+        "val_rmse": 1.0693349502869796,
+        "best_alpha": 100.0
+      },
+      {
+        "fold": 2,
+        "val_pearson": 0.14600843929091942,
+        "val_rmse": 1.0160856563116156,
+        "best_alpha": 100.0
+      },
+      {
+        "fold": 3,
+        "val_pearson": 0.08742807572423936,
+        "val_rmse": 1.1090631486798843,
+        "best_alpha": 100.0
+      },
+      {
+        "fold": 4,
+        "val_pearson": 0.08493759124676539,
+        "val_rmse": 1.1503693527645429,
+        "best_alpha": 100.0
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+timestamp,experiment,val_pearson,val_rmse,params,notes
+2026-02-16T15:32:31,A: All Features,0.049888,1.894825,"{""n_features"": 785}",Feature selection experiment (Ridge baseline)
+2026-02-16T15:32:31,B: Pearson Top-100 Anonymous,0.097224,1.114352,"{""n_features"": 100}",Feature selection experiment (Ridge baseline)
+2026-02-16T15:32:31,C: SHAP-Refined Features,0.097224,1.114352,"{""n_features"": 100}",Feature selection experiment (Ridge baseline)
+2026-02-16T16:30:55,A: All Features,0.049888,1.894825,"{""n_features"": 785}",Feature selection experiment (Ridge baseline)
+2026-02-16T16:30:55,B: Pearson Top-100 Anonymous,0.097224,1.114352,"{""n_features"": 100}",Feature selection experiment (Ridge baseline)
+2026-02-16T16:30:55,C: SHAP-Refined Features,0.102169,1.086213,"{""n_features"": 50}",Feature selection experiment (Ridge baseline)
+2026-02-16T17:58:17,XGBoost (walk-forward),0.056747,1.258635,"{""seeds"": [42, 123, 456], ""objective"": ""reg:squarederror"", ""tree_method"": ""hist"", ""learning_rate"": 0.05, ""max_depth"": 6, ""subsample"": 0.8, ""colsample_bytree"": 0.8, ""reg_alpha"": 0.0, ""reg_lambda"": 1.0, ""verbosity"": 0}","4-fold walk-forward, 3 seeds"
+2026-02-16T18:23:52,MLP (walk-forward),0.077232,1.333854,"{""hidden1"": 256, ""hidden2"": 128, ""dropout"": 0.3, ""lr"": 0.001, ""weight_decay"": 1e-05, ""epochs"": 100, ""batch_size"": 1024, ""patience"": 10}","4-fold walk-forward, 3 seeds"
+2026-02-18T21:45:08,XGBoost (walk-forward),0.056747,,"{""seeds"": [42, 123, 456], ""objective"": ""reg:squarederror"", ""tree_method"": ""hist"", ""learning_rate"": 0.05, ""max_depth"": 6, ""subsample"": 0.8, ""colsample_bytree"": 0.8, ""reg_alpha"": 0.0, ""reg_lambda"": 1.0, ""verbosity"": 0}","4-fold walk-forward, 3 seeds"
+2026-02-18T22:27:53,MLP (walk-forward),0.077232,,"{""hidden1"": 256, ""hidden2"": 128, ""dropout"": 0.3, ""lr"": 0.001, ""weight_decay"": 1e-05, ""epochs"": 100, ""batch_size"": 1024, ""patience"": 10}","4-fold walk-forward, 3 seeds"
+2026-02-18T23:08:50,Ensemble (α=0.4),0.087551,,"{""alpha"": 0.4, ""method"": ""xgb_mlp_blend""}","α*XGB + (1-α)*MLP, best α=0.4, 4-fold walk-forward"
+2026-02-19T14:31:20,XGBoost (walk-forward),0.049392,,"{""seeds"": [42, 123, 456], ""objective"": ""reg:squarederror"", ""tree_method"": ""hist"", ""learning_rate"": 0.05, ""max_depth"": 6, ""subsample"": 0.8, ""colsample_bytree"": 0.8, ""reg_alpha"": 0.0, ""reg_lambda"": 1.0, ""verbosity"": 0}","4-fold walk-forward, 3 seeds"
+2026-02-19T14:47:18,MLP (walk-forward),0.096335,,"{""hidden1"": 256, ""hidden2"": 128, ""hidden3"": 64, ""dropout"": 0.3, ""lr"": 0.001, ""weight_decay"": 1e-05, ""epochs"": 100, ""batch_size"": 1024, ""patience"": 10}","4-fold walk-forward, 3 seeds"
+2026-02-19T14:55:40,Ensemble (α=0.1),0.105524,,"{""alpha"": 0.1, ""method"": ""xgb_mlp_blend""}","α*XGB + (1-α)*MLP, best α=0.1, 4-fold walk-forward"

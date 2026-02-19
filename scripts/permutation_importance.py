@@ -159,7 +159,7 @@ def main():
         engineered_features = []
     
     # Save results
-    output_path = output_dir / f'permutation_importance_fold{args.use_val_fold}.csv'
+    output_path = output_dir / f'permutation_importance.csv'
     importance_df.to_csv(output_path, index=False)
     print(f"\n💾 Results saved to {output_path}")
     

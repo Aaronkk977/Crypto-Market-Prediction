@@ -1,0 +1,43 @@
+# XGBoost Configuration
+
+# Data settings
+data:
+  train_path: "data/train_shap_filtered.parquet"
+  test_path: "data/test.parquet"
+  target_col: "label"
+
+# Feature selection (optional – use SHAP-filtered features)
+features:
+  selected_features_file: null  # not needed; train_shap_filtered.parquet is pre-filtered
+
+# Split settings
+split:
+  use_cv: true
+  cv_method: "walk_forward"
+  date_col: "date_id"
+  train_months: 4
+  gap_months: 1
+  val_months: 4
+
+# Model settings
+model:
+  objective: "reg:squarederror"
+  tree_method: "hist"
+  learning_rate: 0.05
+  max_depth: 6
+  subsample: 0.8
+  colsample_bytree: 0.8
+  reg_alpha: 0.0
+  reg_lambda: 1.0
+  verbosity: 0
+
+# Training settings
+training:
+  num_boost_round: 2000
+  early_stopping_rounds: 50
+  seeds: [42, 123, 456]
+
+# Output settings
+output:
+  model_dir: "artifacts/models"
+  results_dir: "results/xgb_cv"

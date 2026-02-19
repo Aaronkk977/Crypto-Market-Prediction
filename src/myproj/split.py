@@ -158,26 +158,137 @@ def group_kfold_split(X, y, groups, n_splits=5) -> Generator:
         
         yield fold_idx, X_train, X_val, y_train, y_val
 
+def walk_forward_split(df, date_col='date_id', target_col='label',
+                       drop_cols=None, train_months=4, gap_months=1,
+                       val_months=4, days_per_month=30) -> Generator:
+    """
+    Walk-forward (sliding window) cross-validation for time-series.
+
+    Derives calendar-month IDs (YYYYMM-style integer offsets) from one of:
+      1. A ``DatetimeIndex`` on the DataFrame,
+      2. A datetime-typed column named *date_col*, or
+      3. An integer column named *date_col* (bucketed via ``// days_per_month``).
+
+    Each fold uses *train_months* of training data, skips *gap_months*, and
+    validates on the next *val_months*.
+
+    Yields:
+        (fold_idx, X_train, X_val, y_train, y_val) for each fold.
+    """
+    import pandas as pd
+
+    window = train_months + gap_months + val_months
+
+    # ── Derive month_ids (integer, 0-based) ──────────────────────────────
+    dt_series = None
+
+    # 1. DatetimeIndex
+    if isinstance(df.index, pd.DatetimeIndex):
+        dt_series = df.index.to_series()
+    # 2. datetime column
+    elif date_col in df.columns and pd.api.types.is_datetime64_any_dtype(df[date_col]):
+        dt_series = df[date_col]
+    # 3. integer column (legacy date_id)
+    elif date_col in df.columns:
+        month_ids = df[date_col] // days_per_month
+        min_month = int(month_ids.min())
+        month_ids = month_ids - min_month          # 0-based
+        n_months = int(month_ids.max()) + 1
+    else:
+        raise ValueError(
+            f"Cannot derive time information: DataFrame has no DatetimeIndex "
+            f"and column '{date_col}' not found."
+        )
+
+    # Convert datetime → 0-based month offset
+    if dt_series is not None:
+        year_month = dt_series.dt.year * 12 + dt_series.dt.month
+        min_ym = int(year_month.min())
+        month_ids = year_month - min_ym            # 0-based
+        n_months = int(month_ids.max()) + 1
+
+    n_folds = n_months - window + 1
+    if n_folds <= 0:
+        raise ValueError(
+            f"Not enough months ({n_months}) for window={window}. "
+            f"Need at least {window} months of data."
+        )
+
+    print(f"\n{'='*60}")
+    print(f"WALK-FORWARD CROSS-VALIDATION")
+    print(f"{'='*60}")
+    print(f"Total months: {n_months}")
+    print(f"Window: {train_months}mo train | {gap_months}mo gap | {val_months}mo val")
+    print(f"Number of folds: {n_folds}")
+
+    # ── Prepare features / target ───────────────────────────────────────
+    y = df[target_col]
+    meta_cols = [target_col]
+    if date_col in df.columns:
+        meta_cols.append(date_col)
+    if drop_cols:
+        meta_cols.extend(list(drop_cols))
+    X = df.drop(columns=[c for c in meta_cols if c in df.columns], errors='ignore')
+
+    for fold_idx in range(1, n_folds + 1):
+        start = fold_idx - 1
+
+        train_start = start
+        train_end = start + train_months - 1
+        val_start = start + train_months + gap_months
+        val_end = val_start + val_months - 1
+
+        train_mask = (month_ids >= train_start) & (month_ids <= train_end)
+        val_mask = (month_ids >= val_start) & (month_ids <= val_end)
+
+        X_train = X.loc[train_mask]
+        X_val = X.loc[val_mask]
+        y_train = y.loc[train_mask]
+        y_val = y.loc[val_mask]
+
+        print(f"\nFold {fold_idx}/{n_folds}:")
+        print(f"  Train months {train_start+1}-{train_end+1}: {len(X_train)} samples")
+        print(f"  Gap   month  {train_end+2}-{val_start}")
+        print(f"  Val   months {val_start+1}-{val_end+1}: {len(X_val)} samples")
+
+        yield fold_idx, X_train, X_val, y_train, y_val
+
+
 def split_data(df, split_method='random', test_size=0.2, random_state=42, 
                target_col='label', drop_cols=None, n_splits=5, 
-               group_col: Optional[str] = None) -> Tuple:
+               group_col: Optional[str] = None,
+               date_col: str = 'date_id',
+               train_months: int = 4, gap_months: int = 1,
+               val_months: int = 4) -> Tuple:
     """
     Split dataframe into features and target, then into train/validation sets.
     
     Args:
         df: Input dataframe
-        split_method: 'random', 'time', 'kfold', or 'group_kfold' (default: 'random')
+        split_method: 'random', 'time', 'kfold', 'group_kfold', or 'walk_forward'
         test_size: Proportion for validation set (default: 0.2) - not used for kfold
         random_state: Random seed for random split (default: 42)
         target_col: Name of target column (default: 'label')
         drop_cols: Additional columns to drop from features (default: None)
         n_splits: Number of folds for kfold/group_kfold (default: 5)
         group_col: Column name for groups in GroupKFold (required for 'group_kfold')
+        date_col: Column for walk-forward month derivation (default: 'date_id')
+        train_months: Walk-forward training window in months (default: 4)
+        gap_months: Walk-forward gap in months (default: 1)
+        val_months: Walk-forward validation window in months (default: 4)
     
     Returns:
         Tuple: (X_train, X_val, y_train, y_val) for single split
-        Generator: yields (fold_idx, X_train, X_val, y_train, y_val) for kfold
+        Generator: yields (fold_idx, X_train, X_val, y_train, y_val) for kfold/walk_forward
     """
+    # Walk-forward has its own feature/target preparation logic
+    if split_method == 'walk_forward':
+        return walk_forward_split(
+            df, date_col=date_col, target_col=target_col,
+            drop_cols=drop_cols, train_months=train_months,
+            gap_months=gap_months, val_months=val_months
+        )
+
     print("\nPreparing data for splitting...")
     
     # Extract groups if using GroupKFold
@@ -217,7 +328,10 @@ def split_data(df, split_method='random', test_size=0.2, random_state=42,
     elif split_method == 'group_kfold':
         return group_kfold_split(X, y, groups, n_splits=n_splits)
     else:
-        raise ValueError(f"Unknown split_method: {split_method}. Use 'random', 'time', 'kfold', or 'group_kfold'.")
+        raise ValueError(
+            f"Unknown split_method: {split_method}. "
+            f"Use 'random', 'time', 'kfold', 'group_kfold', or 'walk_forward'."
+        )
 
 def save_split(X_train, X_val, y_train, y_val, output_dir):
     """

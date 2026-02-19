@@ -8,8 +8,10 @@ __version__ = "0.1.0"
 
 from .data import load_data
 from .features import add_depth_features
-from .split import split_data, random_split, time_split
-from .models import train_ridge_model, evaluate_model
+from .split import split_data, random_split, time_split, walk_forward_split
+from .models import (
+    train_ridge_model, evaluate_model, train_xgboost, train_mlp
+)
 from .metrics import calculate_metrics
 
 __all__ = [
@@ -18,7 +20,11 @@ __all__ = [
     'split_data',
     'random_split',
     'time_split',
+    'walk_forward_split',
     'train_ridge_model',
     'evaluate_model',
+    'train_xgboost',
+    'train_mlp',
     'calculate_metrics',
 ]
+
